@@ -1,5 +1,23 @@
 """
-Database Models Package
+FlowGrid Models Package
 =======================
-Contains SQLAlchemy ORM models representing tables and relationships in PostgreSQL.
+Central export for all SQLAlchemy 2.0 database models.
+Importing this package registers all models with `Base.metadata`.
 """
+
+from app.models.user import User, UserRole
+from app.models.warehouse import Warehouse
+from app.models.product import Product
+from app.models.inventory import Inventory
+from app.models.driver import Driver
+from app.models.vehicle import Vehicle
+
+__all__ = [
+    "User",
+    "UserRole",
+    "Warehouse",
+    "Product",
+    "Inventory",
+    "Driver",
+    "Vehicle",
+]

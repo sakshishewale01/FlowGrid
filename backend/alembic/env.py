@@ -13,9 +13,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-# Import application settings and SQLAlchemy Base
+# Import application settings, SQLAlchemy Base, and all models
 from app.core.config import settings
 from app.db.base import Base
+import app.models  # Registers User, Warehouse, Product, Inventory, Driver, Vehicle with Base.metadata
 from app.db.session import engine
 
 # Alembic Config object
