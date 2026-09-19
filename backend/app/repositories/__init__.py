@@ -16,6 +16,14 @@ from app.repositories.inventory_repository import (
     InventoryRepository,
     inventory_repository,
 )
+from app.repositories.driver_repository import (
+    DriverRepository,
+    driver_repository,
+)
+from app.repositories.vehicle_repository import (
+    VehicleRepository,
+    vehicle_repository,
+)
 
 __all__ = [
     "WarehouseRepository",
@@ -24,4 +32,8 @@ __all__ = [
     "product_repository",
     "InventoryRepository",
     "inventory_repository",
+    "DriverRepository",
+    "driver_repository",
+    "VehicleRepository",
+    "vehicle_repository",
 ]

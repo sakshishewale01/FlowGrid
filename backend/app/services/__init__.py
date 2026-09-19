@@ -16,6 +16,14 @@ from app.services.inventory_service import (
     InventoryService,
     inventory_service,
 )
+from app.services.driver_service import (
+    DriverService,
+    driver_service,
+)
+from app.services.vehicle_service import (
+    VehicleService,
+    vehicle_service,
+)
 
 __all__ = [
     "WarehouseService",
@@ -24,4 +32,8 @@ __all__ = [
     "product_service",
     "InventoryService",
     "inventory_service",
+    "DriverService",
+    "driver_service",
+    "VehicleService",
+    "vehicle_service",
 ]

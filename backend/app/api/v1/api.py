@@ -5,7 +5,14 @@ Aggregates and registers all modular sub-routers for API version 1.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, warehouses, products, inventory
+from app.api.v1.endpoints import (
+    auth,
+    warehouses,
+    products,
+    inventory,
+    drivers,
+    vehicles,
+)
 
 api_router = APIRouter()
 
@@ -35,4 +42,18 @@ api_router.include_router(
     inventory.router,
     prefix="/inventory",
     tags=["Inventory"],
+)
+
+# Register driver endpoints under /drivers
+api_router.include_router(
+    drivers.router,
+    prefix="/drivers",
+    tags=["Drivers"],
+)
+
+# Register vehicle endpoints under /vehicles
+api_router.include_router(
+    vehicles.router,
+    prefix="/vehicles",
+    tags=["Vehicles"],
 )

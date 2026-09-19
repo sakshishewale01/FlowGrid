@@ -26,6 +26,19 @@ from app.schemas.inventory import (
     WarehouseSummary,
     ProductSummary,
 )
+from app.schemas.driver import (
+    DriverBase,
+    DriverCreate,
+    DriverUpdate,
+    DriverResponse,
+    UserDriverSummary,
+)
+from app.schemas.vehicle import (
+    VehicleBase,
+    VehicleCreate,
+    VehicleUpdate,
+    VehicleResponse,
+)
 
 __all__ = [
     "UserResponse",
@@ -46,4 +59,13 @@ __all__ = [
     "InventoryResponse",
     "WarehouseSummary",
     "ProductSummary",
+    "DriverBase",
+    "DriverCreate",
+    "DriverUpdate",
+    "DriverResponse",
+    "UserDriverSummary",
+    "VehicleBase",
+    "VehicleCreate",
+    "VehicleUpdate",
+    "VehicleResponse",
 ]
