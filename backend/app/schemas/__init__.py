@@ -39,6 +39,16 @@ from app.schemas.vehicle import (
     VehicleUpdate,
     VehicleResponse,
 )
+from app.schemas.shipment import (
+    ShipmentBase,
+    ShipmentCreate,
+    ShipmentUpdate,
+    ShipmentStatusUpdate,
+    ShipmentResponse,
+    WarehouseShipmentSummary,
+    DriverShipmentSummary,
+    VehicleShipmentSummary,
+)
 
 __all__ = [
     "UserResponse",
@@ -68,4 +78,12 @@ __all__ = [
     "VehicleCreate",
     "VehicleUpdate",
     "VehicleResponse",
+    "ShipmentBase",
+    "ShipmentCreate",
+    "ShipmentUpdate",
+    "ShipmentStatusUpdate",
+    "ShipmentResponse",
+    "WarehouseShipmentSummary",
+    "DriverShipmentSummary",
+    "VehicleShipmentSummary",
 ]

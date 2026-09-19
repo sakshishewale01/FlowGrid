@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     inventory,
     drivers,
     vehicles,
+    shipments,
 )
 
 api_router = APIRouter()
@@ -56,4 +57,11 @@ api_router.include_router(
     vehicles.router,
     prefix="/vehicles",
     tags=["Vehicles"],
+)
+
+# Register shipment endpoints under /shipments
+api_router.include_router(
+    shipments.router,
+    prefix="/shipments",
+    tags=["Shipments"],
 )

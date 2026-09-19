@@ -24,6 +24,10 @@ from app.services.vehicle_service import (
     VehicleService,
     vehicle_service,
 )
+from app.services.shipment_service import (
+    ShipmentService,
+    shipment_service,
+)
 
 __all__ = [
     "WarehouseService",
@@ -36,4 +40,6 @@ __all__ = [
     "driver_service",
     "VehicleService",
     "vehicle_service",
+    "ShipmentService",
+    "shipment_service",
 ]
