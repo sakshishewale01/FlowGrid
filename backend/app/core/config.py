@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # Application details
     app_name: str = "FlowGrid"
-    app_version: str = "0.2.0"
+    app_version: str = "0.4.0"
     app_env: str = "development"
     debug: bool = True
 
@@ -40,10 +40,14 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    # Database Configuration (Phase 2)
-    # Reads DATABASE_URL securely from .env.
-    # We use the modern psycopg 3 driver dialect: postgresql+psycopg://
+    # Database Configuration (PostgreSQL + SQLAlchemy 2.0)
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/flowgrid_db"
+
+    # Authentication & Security Configuration (Phase 4)
+    # In production, SECRET_KEY must be a cryptographically secure random string set in .env
+    secret_key: str = "flowgrid_super_secret_development_key_32_bytes_min_length_123!"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 24 hours
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

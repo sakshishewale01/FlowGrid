@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.session import check_db_connection
+from app.api.v1.api import api_router
 
 # ------------------------------------------------------------------------------
 # 1. FastAPI Application Initialization
@@ -36,6 +37,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ------------------------------------------------------------------------------
+# 3. Router Registration
+# ------------------------------------------------------------------------------
+app.include_router(api_router, prefix="/api/v1")
 
 
 # ------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 # ==============================================================================
-# FlowGrid - Backend Dependencies (Phase 2: Database & Migrations)
+# FlowGrid - Backend Dependencies
 # ==============================================================================
 
 # Core Web Framework
@@ -13,10 +13,11 @@ uvicorn[standard]>=0.28.0,<1.0.0
 
 # Data Validation and Settings Management
 # Pydantic validates request and response schemas; pydantic-settings loads .env configurations.
-pydantic>=2.6.0,<3.0.0
+pydantic[email]>=2.6.0,<3.0.0
 pydantic-settings>=2.2.0,<3.0.0
+email-validator>=2.0.0
 
-# Database & ORM Layer (Phase 2)
+# Database & ORM Layer (Phase 2 & 3)
 # SQLAlchemy 2.0 provides modern declarative mapping, typing support, and connection pooling.
 sqlalchemy>=2.0.0,<3.0.0
 
@@ -27,6 +28,13 @@ psycopg[binary]>=3.1.18
 # Database Schema Migrations
 # Alembic handles version-controlled, repeatable schema migrations for SQLAlchemy.
 alembic>=1.13.0,<2.0.0
+
+# Authentication & Security (Phase 4)
+# pwdlib with Argon2 handles secure password hashing and verification.
+pwdlib[argon2]>=0.2.0
+
+# PyJWT handles JSON Web Token (JWT) encoding, decoding, and verification.
+pyjwt>=2.8.0
 
 # Testing Utilities
 pytest>=8.0.0,<9.0.0
