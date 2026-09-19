@@ -150,6 +150,13 @@ class ShipmentStatusUpdate(BaseModel):
         description="Target lifecycle state",
         examples=[ShipmentStatus.CONFIRMED],
     )
+    remarks: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="Optional status change audit notes or remarks",
+        examples=["Driver picked up cargo at Chicago terminal"],
+    )
+
 
 
 class ShipmentResponse(ShipmentBase):

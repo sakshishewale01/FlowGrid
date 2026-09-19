@@ -8,7 +8,7 @@ Governed by a strict state machine lifecycle from CREATED to DELIVERED.
 from datetime import datetime
 from decimal import Decimal
 import enum
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, List
 from sqlalchemy import (
     String,
     Boolean,
@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from app.models.warehouse import Warehouse
     from app.models.driver import Driver
     from app.models.vehicle import Vehicle
+    from app.models.tracking import ShipmentStatusHistory, ShipmentTrackingEvent
+
 
 
 class ShipmentStatus(str, enum.Enum):
@@ -134,6 +136,18 @@ class Shipment(Base):
     origin_warehouse: Mapped[Optional["Warehouse"]] = relationship("Warehouse")
     assigned_driver: Mapped[Optional["Driver"]] = relationship("Driver")
     assigned_vehicle: Mapped[Optional["Vehicle"]] = relationship("Vehicle")
+    status_history: Mapped[List["ShipmentStatusHistory"]] = relationship(
+        "ShipmentStatusHistory",
+        back_populates="shipment",
+        cascade="all, delete-orphan",
+        order_by="desc(ShipmentStatusHistory.created_at)",
+    )
+    tracking_events: Mapped[List["ShipmentTrackingEvent"]] = relationship(
+        "ShipmentTrackingEvent",
+        back_populates="shipment",
+        cascade="all, delete-orphan",
+        order_by="desc(ShipmentTrackingEvent.timestamp)",
+    )
 
     def __repr__(self) -> str:
         return f"<Shipment id={self.id} tracking='{self.tracking_number}' status='{self.status.value}'>"

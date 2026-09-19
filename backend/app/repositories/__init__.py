@@ -28,6 +28,10 @@ from app.repositories.shipment_repository import (
     ShipmentRepository,
     shipment_repository,
 )
+from app.repositories.tracking_repository import (
+    TrackingRepository,
+    tracking_repository,
+)
 
 __all__ = [
     "WarehouseRepository",
@@ -42,4 +46,7 @@ __all__ = [
     "vehicle_repository",
     "ShipmentRepository",
     "shipment_repository",
+    "TrackingRepository",
+    "tracking_repository",
 ]
+

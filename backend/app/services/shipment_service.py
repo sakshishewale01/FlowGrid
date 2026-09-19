@@ -12,11 +12,14 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.shipment import Shipment, ShipmentStatus
+from app.models.tracking import ShipmentStatusHistory
+from app.models.user import User
 from app.repositories.shipment_repository import shipment_repository
 from app.repositories.warehouse_repository import warehouse_repository
 from app.repositories.driver_repository import driver_repository
 from app.repositories.vehicle_repository import vehicle_repository
 from app.schemas.shipment import ShipmentCreate, ShipmentUpdate, ShipmentStatusUpdate
+
 
 # ------------------------------------------------------------------------------
 # Shipment State Machine Lifecycle Definition
@@ -67,6 +70,7 @@ class ShipmentService:
         self,
         db: Session,
         payload: ShipmentCreate,
+        current_user: Optional[User] = None,
     ) -> Shipment:
         """
         Validates relationships, assigns a unique tracking number, and registers a shipment.
@@ -135,7 +139,22 @@ class ShipmentService:
             scheduled_pickup_at=payload.scheduled_pickup_at,
             is_active=True,
         )
-        return self.repository.create(db, shipment)
+        created_shipment = self.repository.create(db, shipment)
+
+        # Record initial status history audit trail
+        initial_history = ShipmentStatusHistory(
+            shipment_id=created_shipment.id,
+            previous_status=None,
+            new_status=ShipmentStatus.CREATED,
+            changed_by_user_id=current_user.id if current_user else None,
+            remarks="Shipment registered",
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(initial_history)
+        db.commit()
+
+        return created_shipment
+
 
     def get_shipment(self, db: Session, shipment_id: int) -> Shipment:
         """
@@ -251,15 +270,17 @@ class ShipmentService:
         db: Session,
         shipment_id: int,
         payload: ShipmentStatusUpdate,
+        current_user: Optional[User] = None,
     ) -> Shipment:
         """
-        Enforces state machine transitions and updates the shipment status.
+        Enforces state machine transitions, updates the shipment status, and records
+        the status change history atomically within the same database transaction.
         """
         shipment = self.get_shipment(db, shipment_id)
         current_status = shipment.status
         target_status = payload.status
 
-        # If already in the target status, return cleanly
+        # If already in the target status, return cleanly without creating duplicate history
         if current_status == target_status:
             return shipment
 
@@ -274,13 +295,27 @@ class ShipmentService:
                 ),
             )
 
-        update_dict: Dict[str, Any] = {"status": target_status}
+        try:
+            shipment.status = target_status
+            if target_status == ShipmentStatus.DELIVERED:
+                shipment.delivered_at = datetime.now(timezone.utc)
 
-        # If transitioning to DELIVERED, record timestamp
-        if target_status == ShipmentStatus.DELIVERED:
-            update_dict["delivered_at"] = datetime.now(timezone.utc)
+            history = ShipmentStatusHistory(
+                shipment_id=shipment.id,
+                previous_status=current_status,
+                new_status=target_status,
+                changed_by_user_id=current_user.id if current_user else None,
+                remarks=payload.remarks.strip() if payload.remarks else None,
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(history)
+            db.commit()
+            db.refresh(shipment)
+            return shipment
+        except Exception:
+            db.rollback()
+            raise
 
-        return self.repository.update(db, shipment, update_dict)
 
     def delete_shipment(self, db: Session, shipment_id: int) -> Shipment:
         """

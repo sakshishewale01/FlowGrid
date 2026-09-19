@@ -28,6 +28,10 @@ from app.services.shipment_service import (
     ShipmentService,
     shipment_service,
 )
+from app.services.tracking_service import (
+    TrackingService,
+    tracking_service,
+)
 
 __all__ = [
     "WarehouseService",
@@ -42,4 +46,7 @@ __all__ = [
     "vehicle_service",
     "ShipmentService",
     "shipment_service",
+    "TrackingService",
+    "tracking_service",
 ]
+

@@ -49,6 +49,13 @@ from app.schemas.shipment import (
     DriverShipmentSummary,
     VehicleShipmentSummary,
 )
+from app.schemas.tracking import (
+    UserSummary,
+    ShipmentStatusHistoryResponse,
+    ShipmentTrackingEventCreate,
+    ShipmentTrackingEventResponse,
+    LatestTrackingInfoResponse,
+)
 
 __all__ = [
     "UserResponse",
@@ -86,4 +93,10 @@ __all__ = [
     "WarehouseShipmentSummary",
     "DriverShipmentSummary",
     "VehicleShipmentSummary",
+    "UserSummary",
+    "ShipmentStatusHistoryResponse",
+    "ShipmentTrackingEventCreate",
+    "ShipmentTrackingEventResponse",
+    "LatestTrackingInfoResponse",
 ]
+

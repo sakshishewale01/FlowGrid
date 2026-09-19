@@ -12,6 +12,7 @@ from app.models.inventory import Inventory
 from app.models.driver import Driver
 from app.models.vehicle import Vehicle
 from app.models.shipment import Shipment, ShipmentStatus
+from app.models.tracking import ShipmentStatusHistory, ShipmentTrackingEvent
 
 __all__ = [
     "User",
@@ -23,4 +24,7 @@ __all__ = [
     "Vehicle",
     "Shipment",
     "ShipmentStatus",
+    "ShipmentStatusHistory",
+    "ShipmentTrackingEvent",
 ]
+
