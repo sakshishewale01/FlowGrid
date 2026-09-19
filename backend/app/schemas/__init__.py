@@ -12,6 +12,12 @@ from app.schemas.warehouse import (
     WarehouseUpdate,
     WarehouseResponse,
 )
+from app.schemas.product import (
+    ProductBase,
+    ProductCreate,
+    ProductUpdate,
+    ProductResponse,
+)
 
 __all__ = [
     "UserResponse",
@@ -22,4 +28,8 @@ __all__ = [
     "WarehouseCreate",
     "WarehouseUpdate",
     "WarehouseResponse",
+    "ProductBase",
+    "ProductCreate",
+    "ProductUpdate",
+    "ProductResponse",
 ]

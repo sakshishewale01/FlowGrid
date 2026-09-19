@@ -8,8 +8,14 @@ from app.services.warehouse_service import (
     WarehouseService,
     warehouse_service,
 )
+from app.services.product_service import (
+    ProductService,
+    product_service,
+)
 
 __all__ = [
     "WarehouseService",
     "warehouse_service",
+    "ProductService",
+    "product_service",
 ]
