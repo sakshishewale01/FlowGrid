@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     vehicles,
     shipments,
     routes,
+    analytics,
 )
 
 api_router = APIRouter()
@@ -72,4 +73,11 @@ api_router.include_router(
     routes.router,
     prefix="/routes",
     tags=["Routes"],
+)
+
+# Register analytics endpoints under /analytics
+api_router.include_router(
+    analytics.router,
+    prefix="/analytics",
+    tags=["Analytics"],
 )

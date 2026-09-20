@@ -36,6 +36,10 @@ from app.services.route_service import (
     RouteService,
     route_service,
 )
+from app.services.analytics_service import (
+    AnalyticsService,
+    analytics_service,
+)
 
 __all__ = [
     "WarehouseService",
@@ -54,5 +58,7 @@ __all__ = [
     "tracking_service",
     "RouteService",
     "route_service",
+    "AnalyticsService",
+    "analytics_service",
 ]
 
