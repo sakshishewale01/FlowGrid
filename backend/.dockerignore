@@ -1,0 +1,34 @@
+# ==============================================================================
+# FlowGrid - Docker Ignore File
+# ==============================================================================
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local configuration & secrets
+.env
+.env.*
+!backend/.env.example
+
+# Git & IDE metadata
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Tests & temporary files
+tests/
+scratch/
+*.log

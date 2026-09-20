@@ -80,19 +80,25 @@ def create_access_token(
 def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     """
     Decodes and validates a signed JWT access token.
+    Enforces expiration, subject identity claim, and signing signature.
 
     Args:
         token: The encoded JWT string.
 
     Returns:
-        The payload dict if valid, or None if signature is invalid or expired.
+        The payload dict if valid, or None if signature is invalid, expired, or claims missing.
     """
     try:
         payload = jwt.decode(
             token,
             settings.secret_key,
             algorithms=[settings.algorithm],
+            options={"require": ["exp", "sub", "iat"], "verify_exp": True},
         )
         return payload
-    except jwt.PyJWTError:
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+    except Exception:
         return None

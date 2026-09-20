@@ -26,9 +26,10 @@ class Settings(BaseSettings):
 
     # Application details
     app_name: str = "FlowGrid"
-    app_version: str = "0.4.0"
+    app_version: str = "1.0.0"
     app_env: str = "development"
     debug: bool = True
+    log_level: str = "INFO"
 
     # Server binding
     host: str = "127.0.0.1"
@@ -43,11 +44,19 @@ class Settings(BaseSettings):
     # Database Configuration (PostgreSQL + SQLAlchemy 2.0)
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/flowgrid_db"
 
-    # Authentication & Security Configuration (Phase 4)
+    # Authentication & Security Configuration
     # In production, SECRET_KEY must be a cryptographically secure random string set in .env
     secret_key: str = "flowgrid_super_secret_development_key_32_bytes_min_length_123!"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.lower() in ("production", "prod")
+
+    @property
+    def is_development(self) -> bool:
+        return self.app_env.lower() in ("development", "dev", "local", "test")
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

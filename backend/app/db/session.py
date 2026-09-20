@@ -17,6 +17,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger("db")
 
 # ------------------------------------------------------------------------------
 # 1. SQLAlchemy Synchronous Engine
@@ -73,4 +76,5 @@ def check_db_connection() -> Tuple[bool, str]:
             connection.execute(text("SELECT 1"))
         return True, "Database connection successful"
     except Exception as exc:
-        return False, str(exc)
+        logger.error(f"Database health check failed: {exc}", exc_info=True)
+        return False, f"Connection refused or database unreachable: {type(exc).__name__}"
