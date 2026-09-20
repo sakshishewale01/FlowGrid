@@ -204,22 +204,125 @@ FlowGrid/
 │
 ├── backend/
 │   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   ├── repositories/
-│   │   └── main.py
-│   ├── alembic/
-│   ├── requirements.txt
-│   └── .env.example
+│   │   ├── api/          # Modular API routers and dependencies
+│   │   ├── core/         # Config, security, and logging
+│   │   ├── db/           # Session management and engine
+│   │   ├── models/       # SQLAlchemy 2.0 ORM models
+│   │   ├── schemas/      # Pydantic validation schemas
+│   │   ├── services/     # Business logic layer
+│   │   ├── repositories/ # Database query operations
+│   │   └── main.py       # FastAPI application entrypoint
+│   ├── alembic/          # Database migrations
+│   ├── tests/            # Automated pytest suite
+│   ├── Dockerfile        # Production container specification
+│   ├── requirements.txt  # Python dependencies
+│   └── .env.example      # Environment variables template
 │
 ├── README.md
 └── .gitignore
 ```
 
-> The project structure may evolve as new modules and capabilities are added.
+---
+
+## 🚀 Quickstart & Local Development
+
+### 1. Prerequisites
+- **Python**: 3.11+ (recommended 3.12 or 3.14)
+- **Node.js**: 18+ and npm
+- **PostgreSQL**: 15+ running on port `5432`
+
+### 2. Backend Setup
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Create and activate a virtual environment
+python -m venv venv
+# Linux / macOS:
+source venv/bin/activate
+# Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+
+# Run database migrations
+alembic upgrade head
+
+# Start the development server
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### 3. Frontend Setup
+```bash
+# In a separate terminal, navigate to the frontend directory
+cd frontend
+
+# Install packages
+npm install
+
+# Start the Vite development server
+npm run dev
+```
 
 ---
+
+## 📖 Interactive API Documentation
+
+Once the backend service is running, access the interactive OpenAPI documentation:
+
+- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **OpenAPI JSON**: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+
+---
+
+## 🧪 Running Automated Tests
+
+FlowGrid comes with an automated test suite covering all modules, RBAC enforcement, state machine transitions, validations, and analytics:
+
+```bash
+cd backend
+
+# Run the complete test suite
+pytest
+
+# Run tests with verbose output
+pytest -v
+
+# Run specific test modules
+pytest tests/test_auth.py
+pytest tests/test_shipments.py
+pytest tests/test_routes.py
+pytest tests/test_analytics.py
+```
+
+---
+
+## 🐳 Production Deployment
+
+### Production Startup (Bare Metal / VM)
+```bash
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+### Docker Container Deployment
+```bash
+# Build the production Docker image
+docker build -t flowgrid-backend:latest -f backend/Dockerfile backend/
+
+# Run the container
+docker run -d \
+  --name flowgrid-backend \
+  -p 8000:8000 \
+  -e DATABASE_URL="postgresql+psycopg://user:password@host:5432/flowgrid_db" \
+  -e SECRET_KEY="your-cryptographically-secure-production-secret" \
+  -e APP_ENV="production" \
+  -e DEBUG="False" \
+  flowgrid-backend:latest
+```
 
