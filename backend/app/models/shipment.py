@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from app.models.driver import Driver
     from app.models.vehicle import Vehicle
     from app.models.tracking import ShipmentStatusHistory, ShipmentTrackingEvent
+    from app.models.route import Route, RouteShipment
 
 
 
@@ -147,6 +148,18 @@ class Shipment(Base):
         back_populates="shipment",
         cascade="all, delete-orphan",
         order_by="desc(ShipmentTrackingEvent.timestamp)",
+    )
+    route_shipments: Mapped[List["RouteShipment"]] = relationship(
+        "RouteShipment",
+        back_populates="shipment",
+        cascade="all, delete-orphan",
+        order_by="desc(RouteShipment.assigned_at)",
+    )
+    routes: Mapped[List["Route"]] = relationship(
+        "Route",
+        secondary="route_shipments",
+        back_populates="shipments",
+        viewonly=True,
     )
 
     def __repr__(self) -> str:

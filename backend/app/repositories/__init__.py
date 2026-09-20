@@ -32,6 +32,10 @@ from app.repositories.tracking_repository import (
     TrackingRepository,
     tracking_repository,
 )
+from app.repositories.route_repository import (
+    RouteRepository,
+    route_repository,
+)
 
 __all__ = [
     "WarehouseRepository",
@@ -48,5 +52,7 @@ __all__ = [
     "shipment_repository",
     "TrackingRepository",
     "tracking_repository",
+    "RouteRepository",
+    "route_repository",
 ]
 

@@ -56,6 +56,15 @@ from app.schemas.tracking import (
     ShipmentTrackingEventResponse,
     LatestTrackingInfoResponse,
 )
+from app.schemas.route import (
+    RouteStatus,
+    RouteBase,
+    RouteCreate,
+    RouteUpdate,
+    RouteResponse,
+    RouteDetailResponse,
+    RouteShipmentAssign,
+)
 
 __all__ = [
     "UserResponse",
@@ -98,5 +107,12 @@ __all__ = [
     "ShipmentTrackingEventCreate",
     "ShipmentTrackingEventResponse",
     "LatestTrackingInfoResponse",
+    "RouteStatus",
+    "RouteBase",
+    "RouteCreate",
+    "RouteUpdate",
+    "RouteResponse",
+    "RouteDetailResponse",
+    "RouteShipmentAssign",
 ]
 
