@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { shipmentsApi } from '../api/shipments.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import ShipmentDetailDrawer from '../components/ShipmentDetailDrawer';
 import NewShipmentModal from '../components/NewShipmentModal';
 
 export default function ShipmentsPage() {
-  const { user } = useAuth();
-  const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,9 +52,9 @@ export default function ShipmentsPage() {
     });
   }, [shipments, statusFilter, searchQuery]);
 
-  const inTransitCount = shipments.filter((s) => s.status === 'IN_TRANSIT').length;
+  const inTransitCount = shipments.filter((s) => s.status === 'IN_TRANSIT' || s.status === 'PICKED_UP').length;
   const deliveredCount = shipments.filter((s) => s.status === 'DELIVERED').length;
-  const assignedCount = shipments.filter((s) => s.status === 'ASSIGNED' || s.status === 'DISPATCHED').length;
+  const assignedCount = shipments.filter((s) => s.status === 'ASSIGNED').length;
 
   const handleOpenDetail = (shipment) => {
     setSelectedShipment(shipment);
@@ -71,12 +70,108 @@ export default function ShipmentsPage() {
     fetchShipments();
   };
 
+  const columns = useMemo(() => [
+    {
+      key: 'tracking_number',
+      header: 'Tracking Waybill',
+      sortable: true,
+      render: (s) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#38BDF8' }}>
+            {s.tracking_number}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+            ID #{s.id} • {s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Active'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'origin',
+      header: 'Origin Facility',
+      render: (s) => (
+        <div>
+          <div className="table-primary-text">
+            {s.origin_warehouse?.name || `Warehouse #${s.origin_warehouse_id || 'N/A'}`}
+          </div>
+          <span className="table-secondary-text">{s.origin_warehouse?.location || 'Origin Hub'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'destination_city',
+      header: 'Consignee Destination',
+      sortable: true,
+      render: (s) => (
+        <div>
+          <div className="table-primary-text">{s.destination_city}, {s.destination_state}</div>
+          <span className="table-secondary-text" style={{ maxWidth: '200px', display: 'inline-block' }}>
+            {s.destination_address}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'assigned',
+      header: 'Driver & Vehicle',
+      render: (s) => (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: '#CBD5E1' }}>
+            {s.assigned_driver ? `Driver #${s.assigned_driver.id}` : 'No driver'}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+            {s.assigned_vehicle ? s.assigned_vehicle.registration_number : 'No vehicle'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'total_weight_kg',
+      header: 'Payload',
+      sortable: true,
+      render: (s) => (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: 600 }}>
+            {s.total_weight_kg ? `${s.total_weight_kg} kg` : '0 kg'}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+            {s.total_volume_cbm ? `${s.total_volume_cbm} m³` : 'Standard'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Lifecycle State',
+      sortable: true,
+      render: (s) => <StatusBadge status={s.status} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (s) => (
+        <button
+          type="button"
+          className="btn-action outline"
+          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenDetail(s);
+          }}
+        >
+          Waybill & Status
+        </button>
+      ),
+    },
+  ], []);
+
   return (
     <div className="management-page" id="shipments-management-page">
       <PageHeader
         section="OPERATIONS CONTROL / LOGISTICS"
         title="Shipment Operations"
-        caption="Real-time freight manifests, lifecycle stage transitions, waybills, and GPS waypoint breadcrumbs."
+        caption="End-to-end freight manifests, lifecycle stage transitions, waybills, and GPS waypoint breadcrumbs."
         metaPills={[
           { label: 'Total Shipments', value: shipments.length },
           { label: 'In Transit', value: inTransitCount, status: 'in-transit' },
@@ -119,7 +214,7 @@ export default function ShipmentsPage() {
         </div>
 
         <div className="filter-tabs" style={{ flexWrap: 'wrap' }}>
-          {['ALL', 'CREATED', 'CONFIRMED', 'ASSIGNED', 'IN_TRANSIT', 'DELIVERED', 'FAILED', 'CANCELLED'].map((st) => (
+          {['ALL', 'CREATED', 'CONFIRMED', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'CANCELLED'].map((st) => (
             <button
               key={st}
               type="button"
@@ -132,107 +227,31 @@ export default function ShipmentsPage() {
         </div>
       </div>
 
-      {/* Shipments Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Tracking Waybill</th>
-              <th>Origin Facility</th>
-              <th>Consignee Destination</th>
-              <th>Driver & Vehicle</th>
-              <th>Payload</th>
-              <th>Lifecycle State</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4, 5].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="7">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredShipments.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">📦</span>
-                    <p className="empty-title">No shipment records found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No shipments matched search "${searchQuery}".`
-                        : 'No shipments registered in selected status filter.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredShipments.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#38BDF8' }}>
-                        {s.tracking_number}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                        ID #{s.id} • {s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Active'}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="table-primary-text">
-                      {s.origin_warehouse?.name || `Warehouse #${s.origin_warehouse_id || 'N/A'}`}
-                    </div>
-                    <span className="table-secondary-text">{s.origin_warehouse?.location || 'Origin Hub'}</span>
-                  </td>
-                  <td>
-                    <div className="table-primary-text">{s.destination_city}, {s.destination_state}</div>
-                    <span className="table-secondary-text" style={{ maxWidth: '200px', display: 'inline-block' }}>
-                      {s.destination_address}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.8rem', color: '#CBD5E1' }}>
-                      {s.assigned_driver ? `Driver #${s.assigned_driver.id}` : 'No driver'}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                      {s.assigned_vehicle ? s.assigned_vehicle.registration_number : 'No vehicle'}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: 600 }}>
-                      {s.total_weight_kg ? `${s.total_weight_kg} kg` : '0 kg'}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                      {s.total_volume_cbm ? `${s.total_volume_cbm} m³` : 'Standard'}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${s.status?.toLowerCase().replace(/_/g, '-')}`}>
-                      {s.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                      <button
-                        type="button"
-                        className="btn-action outline"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                        onClick={() => handleOpenDetail(s)}
-                      >
-                        Waybill & Status
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredShipments}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        onRowClick={handleOpenDetail}
+        emptyState={
+          <EmptyState
+            icon="📦"
+            title="No shipment records found"
+            description={
+              searchQuery
+                ? `No shipments matched search query "${searchQuery}".`
+                : 'No shipments recorded in the selected status filter.'
+            }
+            action={{
+              label: 'Dispatch New Shipment',
+              onClick: () => setIsCreateModalOpen(true),
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Shipment Detail & Tracking Events Drawer */}
       <ShipmentDetailDrawer

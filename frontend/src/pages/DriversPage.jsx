@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { driversApi } from '../api/drivers.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import DriverModal from '../components/DriverModal';
 
 export default function DriversPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const canUpdateStatus = isManagerOrAdmin || user?.role === 'DRIVER';
 
@@ -68,6 +73,82 @@ export default function DriversPage() {
   const handleOpenStatus = (driver) => {
     setModalState({ isOpen: true, driver, isStatusOnly: true });
   };
+
+  const handleSaved = (drv, isEdit) => {
+    toast.success(`Driver #${drv.id} (${drv.license_number}) ${isEdit ? 'updated' : 'registered'} successfully`);
+    fetchDrivers();
+  };
+
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Driver ID',
+      sortable: true,
+      render: (d) => <span className="id-tag">DRV-{d.id}</span>,
+    },
+    {
+      key: 'license_number',
+      header: 'License Number',
+      sortable: true,
+      render: (d) => (
+        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#F1F5F9' }}>
+          {d.license_number}
+        </span>
+      ),
+    },
+    {
+      key: 'phone_number',
+      header: 'Contact Phone',
+      render: (d) => <span className="table-secondary-text">{d.phone_number}</span>,
+    },
+    {
+      key: 'user_id',
+      header: 'Linked Account',
+      sortable: true,
+      render: (d) => <span className="table-secondary-text">User #{d.user_id}</span>,
+    },
+    {
+      key: 'availability_status',
+      header: 'Availability Status',
+      sortable: true,
+      render: (d) => <StatusBadge status={d.availability_status} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (d) => (
+        <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+          {canUpdateStatus && (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenStatus(d);
+              }}
+            >
+              Status
+            </button>
+          )}
+          {isManagerOrAdmin && (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenEdit(d);
+              }}
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ], [canUpdateStatus, isManagerOrAdmin]);
 
   return (
     <div className="management-page" id="drivers-management-page">
@@ -154,102 +235,30 @@ export default function DriversPage() {
         </div>
       </div>
 
-      {/* Drivers Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Driver ID</th>
-              <th>License Number</th>
-              <th>Contact Phone</th>
-              <th>Linked Account</th>
-              <th>Availability Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="6">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredDrivers.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">👤</span>
-                    <p className="empty-title">No drivers found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No driver profiles matched query "${searchQuery}".`
-                        : 'No drivers found matching selected availability status.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredDrivers.map((driver) => (
-                <tr key={driver.id}>
-                  <td>
-                    <span className="id-tag">DRV-{driver.id}</span>
-                  </td>
-                  <td>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#F1F5F9' }}>
-                      {driver.license_number}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text">{driver.phone_number}</span>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text">User #{driver.user_id}</span>
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        driver.availability_status === 'AVAILABLE'
-                          ? 'delivered'
-                          : driver.availability_status === 'IN_TRANSIT' || driver.availability_status === 'ON_DUTY'
-                          ? 'in-transit'
-                          : 'cancelled'
-                      }`}
-                    >
-                      {driver.availability_status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                      {canUpdateStatus && (
-                        <button
-                          type="button"
-                          className="btn-action outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => handleOpenStatus(driver)}
-                        >
-                          Status
-                        </button>
-                      )}
-                      {isManagerOrAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => handleOpenEdit(driver)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredDrivers}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        emptyState={
+          <EmptyState
+            icon="👤"
+            title="No driver profiles found"
+            description={
+              searchQuery
+                ? `No drivers matched query "${searchQuery}".`
+                : 'No drivers found matching selected availability status.'
+            }
+            action={{
+              label: 'Register Fleet Driver',
+              onClick: handleOpenRegister,
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Driver Modal */}
       <DriverModal
@@ -257,7 +266,7 @@ export default function DriversPage() {
         onClose={() => setModalState({ isOpen: false, driver: null, isStatusOnly: false })}
         driver={modalState.driver}
         isStatusOnly={modalState.isStatusOnly}
-        onSaved={fetchDrivers}
+        onSaved={handleSaved}
       />
     </div>
   );

@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { warehousesApi } from '../api/warehouses.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
+import ConfirmDialog from '../components/ConfirmDialog';
 import WarehouseModal from '../components/WarehouseModal';
 
 export default function WarehousesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isAdmin = user?.role === 'ADMIN';
   const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
@@ -17,7 +23,10 @@ export default function WarehousesPage() {
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'INACTIVE'
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deleteError, setDeleteError] = useState(null);
+
+  // Deactivation confirmation modal state
+  const [deactivatingWarehouse, setDeactivatingWarehouse] = useState(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const fetchWarehouses = useCallback(async () => {
     setLoading(true);
@@ -60,25 +69,125 @@ export default function WarehousesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (wh) => {
-    if (!isAdmin) return;
-    if (!window.confirm(`Are you sure you want to deactivate warehouse "${wh.name}"?`)) return;
-
-    setDeleteError(null);
+  const handleConfirmDeactivate = async () => {
+    if (!isAdmin || !deactivatingWarehouse) return;
+    setIsDeactivating(true);
     try {
-      await warehousesApi.deleteWarehouse(wh.id);
+      await warehousesApi.deleteWarehouse(deactivatingWarehouse.id);
+      toast.warning(`Warehouse facility "${deactivatingWarehouse.name}" deactivated`);
+      setDeactivatingWarehouse(null);
       fetchWarehouses();
     } catch (err) {
-      setDeleteError(formatErrorMessage(err));
+      toast.error(formatErrorMessage(err));
+    } finally {
+      setIsDeactivating(false);
     }
   };
 
-  const handleSaved = () => {
+  const handleSaved = (wh, isEdit) => {
+    toast.success(`Warehouse "${wh.name}" ${isEdit ? 'updated' : 'registered'} successfully`);
     fetchWarehouses();
   };
 
   const activeCount = warehouses.filter((w) => w.is_active).length;
   const totalCapacity = warehouses.reduce((acc, w) => acc + (w.capacity || 0), 0);
+
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Facility ID',
+      sortable: true,
+      render: (wh) => <span className="id-tag">WH-{wh.id}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Name & Hub',
+      sortable: true,
+      render: (wh) => <div className="table-primary-text">{wh.name}</div>,
+    },
+    {
+      key: 'location',
+      header: 'Metropolitan Area',
+      sortable: true,
+      render: (wh) => <span className="table-secondary-text">{wh.location}</span>,
+    },
+    {
+      key: 'address',
+      header: 'Street Address',
+      render: (wh) => (
+        <span className="table-secondary-text" style={{ maxWidth: '240px', display: 'inline-block' }}>
+          {wh.address}
+        </span>
+      ),
+    },
+    {
+      key: 'capacity',
+      header: 'Capacity',
+      sortable: true,
+      render: (wh) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
+            {wh.capacity ? wh.capacity.toLocaleString() : '0'} units
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Pallet storage</span>
+        </div>
+      ),
+    },
+    {
+      key: 'is_active',
+      header: 'Status',
+      sortable: true,
+      render: (wh) => <StatusBadge status={wh.is_active ? 'OPERATIONAL' : 'INACTIVE'} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (wh) => (
+        <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+          {isManagerOrAdmin && (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenEdit(wh);
+              }}
+            >
+              Edit
+            </button>
+          )}
+          {isAdmin && wh.is_active && (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#F87171' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeactivatingWarehouse(wh);
+              }}
+            >
+              Deactivate
+            </button>
+          )}
+          {!isManagerOrAdmin && (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenEdit(wh);
+              }}
+            >
+              View
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ], [isAdmin, isManagerOrAdmin]);
 
   return (
     <div className="management-page" id="warehouses-management-page">
@@ -97,12 +206,6 @@ export default function WarehousesPage() {
           requiredRoles: ['ADMIN', 'MANAGER'],
         }}
       />
-
-      {deleteError && (
-        <div className="auth-alert error" style={{ marginBottom: '16px' }}>
-          <span className="auth-alert-text">{deleteError}</span>
-        </div>
-      )}
 
       {error && (
         <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
@@ -157,113 +260,30 @@ export default function WarehousesPage() {
         </div>
       </div>
 
-      {/* Facilities Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Facility ID</th>
-              <th>Name & Code</th>
-              <th>Metropolitan Area</th>
-              <th>Address</th>
-              <th>Capacity</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="7">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredWarehouses.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">🏭</span>
-                    <p className="empty-title">No warehouse facilities found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No facilities matched query "${searchQuery}".`
-                        : 'No facilities registered in this status filter.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredWarehouses.map((wh) => (
-                <tr key={wh.id}>
-                  <td>
-                    <span className="id-tag">WH-{wh.id}</span>
-                  </td>
-                  <td>
-                    <div className="table-primary-text">{wh.name}</div>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text">{wh.location}</span>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text" style={{ maxWidth: '240px', display: 'inline-block' }}>
-                      {wh.address}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
-                        {wh.capacity ? wh.capacity.toLocaleString() : '0'} units
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Pallet storage</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${wh.is_active ? 'delivered' : 'cancelled'}`}>
-                      {wh.is_active ? 'OPERATIONAL' : 'INACTIVE'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                      {isManagerOrAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => handleOpenEdit(wh)}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#F87171' }}
-                          onClick={() => handleDelete(wh)}
-                        >
-                          Deactivate
-                        </button>
-                      )}
-                      {!isManagerOrAdmin && (
-                        <button
-                          type="button"
-                          className="btn-action outline"
-                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                          onClick={() => handleOpenEdit(wh)}
-                        >
-                          View
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredWarehouses}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        emptyState={
+          <EmptyState
+            icon="🏭"
+            title="No warehouse facilities found"
+            description={
+              searchQuery
+                ? `No facilities matched query "${searchQuery}".`
+                : 'No facilities registered in this status filter.'
+            }
+            action={{
+              label: 'Register Warehouse',
+              onClick: handleOpenCreate,
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Warehouse Create / Edit Modal */}
       <WarehouseModal
@@ -271,6 +291,26 @@ export default function WarehousesPage() {
         onClose={() => setIsModalOpen(false)}
         warehouse={selectedWarehouse}
         onSaved={handleSaved}
+      />
+
+      {/* Confirm Deactivation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(deactivatingWarehouse)}
+        title="Deactivate Warehouse Facility"
+        message={
+          deactivatingWarehouse ? (
+            <span>
+              Are you sure you want to deactivate <strong>{deactivatingWarehouse.name}</strong>?
+              Inactive facilities cannot receive new inventory or act as departure origins for shipments.
+            </span>
+          ) : ''
+        }
+        confirmLabel="Yes, Deactivate"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        isLoading={isDeactivating}
+        onConfirm={handleConfirmDeactivate}
+        onCancel={() => setDeactivatingWarehouse(null)}
       />
     </div>
   );

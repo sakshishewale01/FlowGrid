@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { routesApi } from '../api/routes.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import RouteModal from '../components/RouteModal';
 
 export default function RoutesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const [routes, setRoutes] = useState([]);
@@ -62,6 +67,90 @@ export default function RoutesPage() {
     setSelectedRoute(route);
     setIsModalOpen(true);
   };
+
+  const handleSaved = (route, isEdit) => {
+    toast.success(`Corridor "${route.name}" ${isEdit ? 'updated' : 'configured'} successfully`);
+    fetchRoutes();
+  };
+
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Corridor ID',
+      sortable: true,
+      render: (r) => <span className="id-tag">RT-{r.id}</span>,
+    },
+    {
+      key: 'name',
+      header: 'Corridor Name',
+      sortable: true,
+      render: (r) => <div className="table-primary-text">{r.name}</div>,
+    },
+    {
+      key: 'origin',
+      header: 'Origin Terminal',
+      sortable: true,
+      render: (r) => <span className="table-secondary-text">{r.origin}</span>,
+    },
+    {
+      key: 'destination',
+      header: 'Destination Terminal',
+      sortable: true,
+      render: (r) => <span className="table-secondary-text">{r.destination}</span>,
+    },
+    {
+      key: 'estimated_distance',
+      header: 'Est. Distance',
+      sortable: true,
+      render: (r) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
+            {r.estimated_distance ? Number(r.estimated_distance).toLocaleString() : '—'}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>km</span>
+        </div>
+      ),
+    },
+    {
+      key: 'estimated_duration',
+      header: 'Est. Duration',
+      sortable: true,
+      render: (r) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
+            {r.estimated_duration ? `${r.estimated_duration}h` : '—'}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>transit</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Corridor Status',
+      sortable: true,
+      render: (r) => <StatusBadge status={r.status} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (r) => (
+        <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+          <button
+            type="button"
+            className="btn-action outline"
+            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenDetail(r);
+            }}
+          >
+            {isManagerOrAdmin ? 'Edit / Shipments' : 'View'}
+          </button>
+        </div>
+      ),
+    },
+  ], [isManagerOrAdmin]);
 
   return (
     <div className="management-page" id="routes-management-page">
@@ -123,113 +212,37 @@ export default function RoutesPage() {
         </div>
       </div>
 
-      {/* Routes Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Corridor ID</th>
-              <th>Route Name</th>
-              <th>Origin Terminal</th>
-              <th>Destination Terminal</th>
-              <th>Est. Distance</th>
-              <th>Est. Duration</th>
-              <th>Corridor Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="8">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredRoutes.length === 0 ? (
-              <tr>
-                <td colSpan="8" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">🛣️</span>
-                    <p className="empty-title">No transit routes found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No corridors matched query "${searchQuery}".`
-                        : 'No routes found in the selected status filter.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredRoutes.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <span className="id-tag">RT-{r.id}</span>
-                  </td>
-                  <td>
-                    <div className="table-primary-text">{r.name}</div>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text">{r.origin}</span>
-                  </td>
-                  <td>
-                    <span className="table-secondary-text">{r.destination}</span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
-                        {r.estimated_distance ? Number(r.estimated_distance).toLocaleString() : '—'}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>km</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
-                        {r.estimated_duration ? `${r.estimated_duration}h` : '—'}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>transit</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        r.status === 'ACTIVE'
-                          ? 'delivered'
-                          : r.status === 'PLANNED'
-                          ? 'in-transit'
-                          : 'cancelled'
-                      }`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                      <button
-                        type="button"
-                        className="btn-action outline"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                        onClick={() => handleOpenDetail(r)}
-                      >
-                        {isManagerOrAdmin ? 'Edit / Shipments' : 'View'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredRoutes}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        emptyState={
+          <EmptyState
+            icon="🛣️"
+            title="No transit corridors found"
+            description={
+              searchQuery
+                ? `No corridors matched query "${searchQuery}".`
+                : 'No routes found in the selected status filter.'
+            }
+            action={{
+              label: 'Create Freight Corridor',
+              onClick: handleOpenCreate,
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Route Modal */}
       <RouteModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         route={selectedRoute}
-        onSaved={fetchRoutes}
+        onSaved={handleSaved}
       />
     </div>
   );

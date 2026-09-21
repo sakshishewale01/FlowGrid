@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { vehiclesApi } from '../api/vehicles.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import VehicleModal from '../components/VehicleModal';
 
 export default function VehiclesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const [vehicles, setVehicles] = useState([]);
@@ -67,6 +72,93 @@ export default function VehiclesPage() {
   const handleOpenStatus = (veh) => {
     setModalState({ isOpen: true, vehicle: veh, isStatusOnly: true });
   };
+
+  const handleSaved = (veh, isEdit) => {
+    toast.success(`Vehicle ${veh.registration_number} ${isEdit ? 'updated' : 'registered'} successfully`);
+    fetchVehicles();
+  };
+
+  const columns = useMemo(() => [
+    {
+      key: 'id',
+      header: 'Vehicle ID',
+      sortable: true,
+      render: (v) => <span className="id-tag">VEH-{v.id}</span>,
+    },
+    {
+      key: 'registration_number',
+      header: 'Registration Plate',
+      sortable: true,
+      render: (v) => (
+        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#F1F5F9' }}>
+          {v.registration_number}
+        </span>
+      ),
+    },
+    {
+      key: 'vehicle_type',
+      header: 'Type Classification',
+      sortable: true,
+      render: (v) => <span className="table-primary-text">{v.vehicle_type}</span>,
+    },
+    {
+      key: 'capacity',
+      header: 'Payload Capacity',
+      sortable: true,
+      render: (v) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
+            {Number(v.capacity).toLocaleString()}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: '#64748B' }}>kg max payload</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Operational Status',
+      sortable: true,
+      render: (v) => <StatusBadge status={v.status} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (v) => (
+        <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+          {isManagerOrAdmin && (
+            <>
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenStatus(v);
+                }}
+              >
+                Status
+              </button>
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenEdit(v);
+                }}
+              >
+                Edit
+              </button>
+            </>
+          )}
+          {!isManagerOrAdmin && (
+            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
+          )}
+        </div>
+      ),
+    },
+  ], [isManagerOrAdmin]);
 
   return (
     <div className="management-page" id="vehicles-management-page">
@@ -147,112 +239,29 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      {/* Vehicles Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Vehicle ID</th>
-              <th>Registration Plate</th>
-              <th>Type Classification</th>
-              <th>Payload Capacity</th>
-              <th>Operational Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="6">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredVehicles.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">🚛</span>
-                    <p className="empty-title">No fleet vehicles found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No vehicles matched query "${searchQuery}".`
-                        : 'No fleet vehicles found matching selected status filter.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredVehicles.map((veh) => (
-                <tr key={veh.id}>
-                  <td>
-                    <span className="id-tag">VEH-{veh.id}</span>
-                  </td>
-                  <td>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#F1F5F9' }}>
-                      {veh.registration_number}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="table-primary-text">{veh.vehicle_type}</span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, color: '#F1F5F9' }}>
-                        {Number(veh.capacity).toLocaleString()}
-                      </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>kg max payload</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        veh.status === 'AVAILABLE'
-                          ? 'delivered'
-                          : veh.status === 'IN_USE'
-                          ? 'in-transit'
-                          : veh.status === 'MAINTENANCE'
-                          ? 'failed'
-                          : 'cancelled'
-                      }`}
-                    >
-                      {veh.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                      {isManagerOrAdmin && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-action outline"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                            onClick={() => handleOpenStatus(veh)}
-                          >
-                            Status
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-action outline"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                            onClick={() => handleOpenEdit(veh)}
-                          >
-                            Edit
-                          </button>
-                        </>
-                      )}
-                      {!isManagerOrAdmin && (
-                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredVehicles}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        emptyState={
+          <EmptyState
+            icon="🚛"
+            title="No fleet vehicles found"
+            description={
+              searchQuery
+                ? `No vehicles matched query "${searchQuery}".`
+                : 'No fleet vehicles found matching selected status filter.'}
+            action={{
+              label: 'Register Fleet Vehicle',
+              onClick: handleOpenRegister,
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Vehicle Modal */}
       <VehicleModal
@@ -260,7 +269,7 @@ export default function VehiclesPage() {
         onClose={() => setModalState({ isOpen: false, vehicle: null, isStatusOnly: false })}
         vehicle={modalState.vehicle}
         isStatusOnly={modalState.isStatusOnly}
-        onSaved={fetchVehicles}
+        onSaved={handleSaved}
       />
     </div>
   );

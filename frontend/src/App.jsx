@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -342,7 +343,7 @@ function AppContent() {
             <div className="footer-right">
               <span>FastAPI Backend: <code>http://127.0.0.1:8000</code></span>
               <span className="footer-separator">•</span>
-              <span>Phase 16 Entity Management & Operations</span>
+              <span>Phase 17 End-to-End Workflow & UX Polish</span>
             </div>
           </footer>
         </div>
@@ -361,7 +362,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
     </AuthProvider>
   );
 }

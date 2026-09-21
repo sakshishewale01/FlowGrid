@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { shipmentsApi, warehousesApi } from '../api/index.js';
+import { formatErrorMessage } from '../api/client.js';
 import { useAuth } from '../context/useAuth.js';
+import { useToast } from '../context/ToastContext.jsx';
 
 export default function NewShipmentModal({ isOpen, onClose, onCreated }) {
   const { hasRole } = useAuth();
+  const { toast } = useToast();
   const canCreate = hasRole(['ADMIN', 'MANAGER']);
 
   const [warehouses, setWarehouses] = useState([]);
@@ -66,12 +69,15 @@ export default function NewShipmentModal({ isOpen, onClose, onCreated }) {
       };
 
       const created = await shipmentsApi.createShipment(payload);
+      toast.success(`Shipment ${created.tracking_number} created successfully`);
       if (onCreated) {
         onCreated(created);
       }
       onClose();
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to create shipment order.');
+      const msg = formatErrorMessage(err);
+      setErrorMessage(msg);
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

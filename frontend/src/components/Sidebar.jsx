@@ -67,8 +67,6 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, on
                   <path d={item.icon} />
                 </svg>
                 <span className="nav-label">{item.label}</span>
-                {item.id === 'shipments' && <span className="nav-pill">384</span>}
-                {item.id === 'drivers' && <span className="nav-pill neutral">42</span>}
               </button>
             );
           })}

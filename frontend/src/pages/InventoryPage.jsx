@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { inventoryApi } from '../api/inventory.js';
 import { warehousesApi } from '../api/warehouses.js';
 import { productsApi } from '../api/products.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import DataTable from '../components/DataTable';
+import StatusBadge from '../components/StatusBadge';
+import EmptyState from '../components/EmptyState';
 import StockAdjustModal from '../components/StockAdjustModal';
 
 export default function InventoryPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isManagerOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const [inventory, setInventory] = useState([]);
@@ -25,7 +30,7 @@ export default function InventoryPage() {
   // Modal control
   const [modalState, setModalState] = useState({
     isOpen: false,
-    mode: 'adjust', // 'adjust' | 'transfer' | 'create'
+    mode: 'adjust',
     item: null,
   });
 
@@ -61,18 +66,13 @@ export default function InventoryPage() {
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) => {
-      // Filter by Warehouse
       if (selectedWarehouseId !== 'ALL' && Number(item.warehouse_id) !== Number(selectedWarehouseId)) {
         return false;
       }
-
-      // Filter by Status
       const status = getStockStatus(item);
       if (statusFilter !== 'ALL' && status !== statusFilter) {
         return false;
       }
-
-      // Filter by Search Query
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const pName = item.product?.name?.toLowerCase() || '';
@@ -98,6 +98,108 @@ export default function InventoryPage() {
     setModalState({ isOpen: true, mode: 'create', item: null });
   };
 
+  const handleSuccess = () => {
+    toast.success('Inventory balance updated successfully');
+    fetchData();
+  };
+
+  const columns = useMemo(() => [
+    {
+      key: 'sku',
+      header: 'SKU / Code',
+      sortable: true,
+      render: (item) => (
+        <span className="id-tag">{item.product?.sku || `PROD-${item.product_id}`}</span>
+      ),
+    },
+    {
+      key: 'product_name',
+      header: 'Product Details',
+      sortable: true,
+      render: (item) => (
+        <div className="table-primary-text">{item.product?.name || `Product #${item.product_id}`}</div>
+      ),
+    },
+    {
+      key: 'warehouse_name',
+      header: 'Warehouse Facility',
+      sortable: true,
+      render: (item) => (
+        <span className="table-secondary-text">
+          {item.warehouse?.name || `Warehouse #${item.warehouse_id}`}
+        </span>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'On-Hand Quantity',
+      sortable: true,
+      render: (item) => {
+        const status = getStockStatus(item);
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: status === 'OUT_OF_STOCK' ? '#F87171' : '#F1F5F9' }}>
+              {item.quantity.toLocaleString()}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>units</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'reorder_level',
+      header: 'Reorder Level',
+      sortable: true,
+      render: (item) => <span className="table-secondary-text">{item.reorder_level} units</span>,
+    },
+    {
+      key: 'health',
+      header: 'Stock Status',
+      sortable: true,
+      render: (item) => <StatusBadge status={getStockStatus(item)} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => (
+        <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
+          {isManagerOrAdmin && (
+            <>
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenAdjust(item);
+                }}
+              >
+                Adjust
+              </button>
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38BDF8' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenTransfer(item);
+                }}
+                disabled={item.quantity <= 0}
+                title={item.quantity <= 0 ? 'Zero stock available' : 'Transfer units to another warehouse'}
+              >
+                Transfer
+              </button>
+            </>
+          )}
+          {!isManagerOrAdmin && (
+            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
+          )}
+        </div>
+      ),
+    },
+  ], [isManagerOrAdmin]);
+
   return (
     <div className="management-page" id="inventory-management-page">
       <PageHeader
@@ -107,7 +209,7 @@ export default function InventoryPage() {
         metaPills={[
           { label: 'Total Units', value: totalStockUnits.toLocaleString() },
           { label: 'Low Stock', value: lowStockCount, status: lowStockCount > 0 ? 'warning' : 'online' },
-          { label: 'Out of Stock', value: outOfStockCount, status: outOfStockCount > 0 ? 'error' : 'online' },
+          { label: 'Out of Stock', value: outOfStockCount, status: outOfStockCount > 0 ? 'danger' : 'online' },
         ]}
         primaryAction={{
           label: 'Link Inventory',
@@ -150,7 +252,7 @@ export default function InventoryPage() {
           value={selectedWarehouseId}
           onChange={(e) => setSelectedWarehouseId(e.target.value)}
         >
-          <option value="ALL">All Warehouses ({warehouses.length})</option>
+          <option value="ALL">All Facilities ({warehouses.length})</option>
           {warehouses.map((wh) => (
             <option key={wh.id} value={wh.id}>
               {wh.name}
@@ -191,119 +293,30 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Inventory Table */}
-      <div className="table-container">
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>SKU / Code</th>
-              <th>Product Details</th>
-              <th>Warehouse Facility</th>
-              <th>On-Hand Quantity</th>
-              <th>Reorder Threshold</th>
-              <th>Health Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              [1, 2, 3, 4, 5].map((n) => (
-                <tr key={n} className="skeleton-row">
-                  <td colSpan="7">
-                    <div className="skeleton-line" />
-                  </td>
-                </tr>
-              ))
-            ) : filteredInventory.length === 0 ? (
-              <tr>
-                <td colSpan="7" className="table-empty-cell">
-                  <div className="empty-state-wrap">
-                    <span className="empty-icon">📦</span>
-                    <p className="empty-title">No inventory records found</p>
-                    <p className="empty-desc">
-                      {searchQuery
-                        ? `No items matched "${searchQuery}".`
-                        : 'No inventory allocated for this warehouse or filter.'}
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredInventory.map((item) => {
-                const status = getStockStatus(item);
-                return (
-                  <tr key={item.id}>
-                    <td>
-                      <span className="id-tag">{item.product?.sku || `PROD-${item.product_id}`}</span>
-                    </td>
-                    <td>
-                      <div className="table-primary-text">{item.product?.name || `Product #${item.product_id}`}</div>
-                    </td>
-                    <td>
-                      <span className="table-secondary-text">
-                        {item.warehouse?.name || `Warehouse #${item.warehouse_id}`}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 700, color: status === 'OUT_OF_STOCK' ? '#F87171' : '#F1F5F9' }}>
-                          {item.quantity.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748B' }}>units</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="table-secondary-text">{item.reorder_level} units</span>
-                    </td>
-                    <td>
-                      <span
-                        className={`status-badge ${
-                          status === 'HEALTHY'
-                            ? 'delivered'
-                            : status === 'LOW_STOCK'
-                            ? 'in-transit'
-                            : 'failed'
-                        }`}
-                      >
-                        {status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-                        {isManagerOrAdmin && (
-                          <>
-                            <button
-                              type="button"
-                              className="btn-action outline"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                              onClick={() => handleOpenAdjust(item)}
-                            >
-                              Adjust Stock
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-action outline"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38BDF8' }}
-                              onClick={() => handleOpenTransfer(item)}
-                              disabled={item.quantity <= 0}
-                              title={item.quantity <= 0 ? 'Cannot transfer 0 stock' : 'Transfer units to another warehouse'}
-                            >
-                              Transfer
-                            </button>
-                          </>
-                        )}
-                        {!isManagerOrAdmin && (
-                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Reusable Data Table */}
+      <DataTable
+        columns={columns}
+        data={filteredInventory}
+        loading={loading}
+        pageSize={10}
+        keyField="id"
+        emptyState={
+          <EmptyState
+            icon="📦"
+            title="No inventory records found"
+            description={
+              searchQuery
+                ? `No items matched query "${searchQuery}".`
+                : 'No inventory allocated for this facility or status filter.'
+            }
+            action={{
+              label: 'Allocate Product Stock',
+              onClick: handleOpenCreate,
+              requiredRoles: ['ADMIN', 'MANAGER'],
+            }}
+          />
+        }
+      />
 
       {/* Stock Adjust / Transfer / Create Modal */}
       <StockAdjustModal
@@ -313,7 +326,7 @@ export default function InventoryPage() {
         item={modalState.item}
         warehouses={warehouses}
         products={products}
-        onSuccess={fetchData}
+        onSuccess={handleSuccess}
       />
     </div>
   );

@@ -3373,4 +3373,408 @@ body {
   margin-top: 4px;
 }
 
+/* ==========================================================================
+   Phase 17: Toasts, Badges, Confirm Dialog, DataTable, & UX Polish
+   ========================================================================== */
+
+/* Toast Container & Notification Cards */
+.flowgrid-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+  pointer-events: none;
+}
+
+.flowgrid-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #1E293B;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  color: #F8FAFC;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  animation: fgToastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fgToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.flowgrid-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.flowgrid-toast-success {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.flowgrid-toast-success .flowgrid-toast-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+
+.flowgrid-toast-error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.flowgrid-toast-error .flowgrid-toast-icon {
+  background: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+}
+
+.flowgrid-toast-warning {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.flowgrid-toast-warning .flowgrid-toast-icon {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+}
+
+.flowgrid-toast-info {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.flowgrid-toast-info .flowgrid-toast-icon {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.flowgrid-toast-message {
+  flex: 1;
+}
+
+.flowgrid-toast-close {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.flowgrid-toast-close:hover {
+  color: #F1F5F9;
+}
+
+/* StatusBadge Styles */
+.fg-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  border-radius: 9999px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.fg-badge-small {
+  padding: 2px 8px;
+  font-size: 0.7rem;
+}
+
+.fg-badge-medium {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+}
+
+.fg-badge-large {
+  padding: 4px 12px;
+  font-size: 0.8125rem;
+}
+
+.fg-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Badge Color Themes */
+.fg-badge-primary {
+  background: rgba(59, 130, 246, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+.fg-badge-primary .fg-badge-dot {
+  background: #38BDF8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.fg-badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.fg-badge-success .fg-badge-dot {
+  background: #34D399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+
+.fg-badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.fg-badge-warning .fg-badge-dot {
+  background: #FBBF24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+}
+
+.fg-badge-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.fg-badge-danger .fg-badge-dot {
+  background: #F87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
+}
+
+.fg-badge-info {
+  background: rgba(14, 165, 233, 0.15);
+  color: #7DD3FC;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+.fg-badge-info .fg-badge-dot {
+  background: #7DD3FC;
+}
+
+.fg-badge-neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: #CBD5E1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.fg-badge-neutral .fg-badge-dot {
+  background: #94A3B8;
+}
+
+.fg-badge-muted {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748B;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+/* Confirm Dialog Styles */
+.fg-confirm-card {
+  max-width: 480px;
+  width: 90%;
+}
+
+.fg-confirm-header {
+  display: flex;
+  gap: 16px;
+  padding: 24px 24px 16px;
+}
+
+.fg-confirm-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fg-confirm-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.fg-confirm-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.fg-confirm-primary {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.fg-confirm-title-block {
+  flex: 1;
+}
+
+.fg-confirm-title {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.fg-confirm-message {
+  font-size: 0.85rem;
+  color: #94A3B8;
+  line-height: 1.45;
+}
+
+.fg-confirm-actions {
+  padding: 14px 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-action.danger {
+  background: #EF4444;
+  color: #FFFFFF;
+  border: 1px solid #DC2626;
+}
+.btn-action.danger:hover:not(:disabled) {
+  background: #DC2626;
+}
+
+/* Empty State Card */
+.fg-empty-state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.fg-empty-state-icon {
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+}
+
+.fg-empty-state-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #F1F5F9;
+  margin: 0 0 6px;
+}
+
+.fg-empty-state-desc {
+  font-size: 0.825rem;
+  color: #94A3B8;
+  max-width: 420px;
+  margin: 0 auto;
+  line-height: 1.45;
+}
+
+/* Loading Spinner State */
+.fg-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: #94A3B8;
+}
+
+.fg-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #38BDF8;
+  border-radius: 50%;
+  animation: fgSpin 0.7s linear infinite;
+}
+
+@keyframes fgSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fg-loading-message {
+  font-size: 0.825rem;
+}
+
+/* DataTable Wrapper & Pagination */
+.fg-datatable-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.fg-sort-indicator {
+  font-size: 0.7rem;
+  color: #94A3B8;
+  margin-left: 4px;
+}
+
+.fg-table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 4px;
+}
+
+.fg-pagination-meta {
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
+
+.fg-pagination-meta strong {
+  color: #F1F5F9;
+}
+
+.fg-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fg-page-btn {
+  padding: 5px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #CBD5E1;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.fg-page-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+  border-color: var(--border-focus);
+}
+
+.fg-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fg-page-indicator {
+  font-size: 0.78rem;
+  color: #94A3B8;
+  padding: 0 4px;
+}
+
+
 
