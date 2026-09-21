@@ -1,4 +1,6 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import RoleBadge from './RoleBadge';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
@@ -12,6 +14,8 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
+  const { user, logout } = useAuth();
+
   return (
     <>
       {/* Mobile overlay */}
@@ -66,15 +70,41 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
           })}
         </nav>
 
-        {/* Bottom System Status & Dispatcher Node */}
+        {/* Authenticated User & System Node Footer */}
         <div className="sidebar-footer">
+          {/* User Session Mini Card */}
+          {user && (
+            <div className="sidebar-user-card" id="sidebar-user-card">
+              <div className="sidebar-user-info">
+                <div className="sidebar-user-name">{user.name}</div>
+                <div className="sidebar-user-meta">
+                  <RoleBadge role={user.role} size="small" />
+                  <span className="sidebar-user-id">#{user.id}</span>
+                </div>
+              </div>
+              <button
+                className="sidebar-logout-btn"
+                id="btn-sidebar-logout"
+                onClick={logout}
+                title="Sign out of FlowGrid"
+                aria-label="Sign out"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <div className="system-node-card">
             <div className="node-header">
               <span className="pulse-indicator"></span>
               <span className="node-title">CONTROL NODE: CHI-01</span>
             </div>
-            <div className="node-meta">FastAPI Core • React v18</div>
-            <div className="node-version">Version 0.1.0 (Phase 1)</div>
+            <div className="node-meta">FastAPI Core • React v19</div>
+            <div className="node-version">Version 1.0.0 (Phase 14)</div>
           </div>
         </div>
       </aside>

@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import RoleBadge from './RoleBadge';
 
 export default function TopNavbar({ 
   onToggleSidebar, 
@@ -7,12 +9,37 @@ export default function TopNavbar({
   onCheckHealth,
   pageTitle = "Logistics Overview"
 }) {
+  const { user, logout } = useAuth();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     year: 'numeric'
   });
+
+  // Calculate user initials
+  const getUserInitials = (name) => {
+    if (!name) return 'FG';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const initials = getUserInitials(user?.name);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="top-navbar" id="top-navbar">
@@ -91,13 +118,87 @@ export default function TopNavbar({
           <span className="notification-badge">3</span>
         </div>
 
-        {/* User Profile Placeholder */}
-        <div className="user-profile-badge" id="user-profile-badge">
-          <div className="user-avatar">SJ</div>
-          <div className="user-info-text">
-            <div className="user-name">Sarah Jenkins</div>
-            <div className="user-role-label">Operations Dispatcher</div>
-          </div>
+        {/* User Profile Badge with Interactive Dropdown */}
+        <div className="profile-menu-container" ref={profileMenuRef}>
+          <button
+            className="user-profile-badge interactive"
+            id="user-profile-badge"
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            aria-expanded={isProfileMenuOpen}
+            aria-haspopup="true"
+            title="Open user profile menu"
+          >
+            <div className="user-avatar">{initials}</div>
+            <div className="user-info-text">
+              <div className="user-name">{user?.name || 'Sarah Jenkins'}</div>
+              <div className="user-role-line">
+                <RoleBadge role={user?.role} size="small" />
+              </div>
+            </div>
+            <svg
+              className={`user-chevron ${isProfileMenuOpen ? 'open' : ''}`}
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {/* Dropdown Menu */}
+          {isProfileMenuOpen && (
+            <div className="profile-dropdown-menu" id="user-profile-dropdown" role="menu">
+              <div className="profile-dropdown-header">
+                <div className="dropdown-user-avatar">{initials}</div>
+                <div className="dropdown-user-details">
+                  <span className="dropdown-user-name">{user?.name || 'Authorized User'}</span>
+                  <span className="dropdown-user-email">{user?.email || 'user@flowgrid.io'}</span>
+                  <div className="dropdown-role-tag">
+                    <RoleBadge role={user?.role} size="normal" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="profile-dropdown-divider" />
+
+              <div className="profile-dropdown-section">
+                <div className="dropdown-info-item">
+                  <span className="info-key">Session:</span>
+                  <span className="info-val">Active JWT</span>
+                </div>
+                <div className="dropdown-info-item">
+                  <span className="info-key">User ID:</span>
+                  <span className="info-val">#{user?.id ?? '1'}</span>
+                </div>
+                <div className="dropdown-info-item">
+                  <span className="info-key">Account Status:</span>
+                  <span className="info-val text-success">Verified Active</span>
+                </div>
+              </div>
+
+              <div className="profile-dropdown-divider" />
+
+              <button
+                className="profile-dropdown-logout-btn"
+                id="btn-navbar-logout"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  logout();
+                }}
+                role="menuitem"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
