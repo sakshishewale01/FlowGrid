@@ -1,6 +1,16 @@
 import React from 'react';
 
-export default function MetricCard({ metric }) {
+export default function MetricCard({ metric, loading = false }) {
+  if (loading || !metric) {
+    return (
+      <div className="metric-card skeleton-card">
+        <div className="skeleton-line label" />
+        <div className="skeleton-line value-large" />
+        <div className="skeleton-line subtext" />
+      </div>
+    );
+  }
+
   const isPositive = metric.changeType === 'positive';
   const isWarning = metric.changeType === 'warning';
 

@@ -2702,3 +2702,392 @@ body {
 .unauthorized-icon {
   font-size: 2.5rem;
 }
+
+/* ==============================================================================
+   PHASE 15: Live Dashboard & Telematics Sync Styles
+   ============================================================================== */
+
+/* Telematics Refresh Button */
+.btn-refresh-telematics {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid var(--border-medium);
+  border-radius: 20px;
+  color: #93C5FD;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-refresh-telematics:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: var(--primary-blue);
+  color: #FFFFFF;
+}
+
+.btn-refresh-telematics:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin-anim {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Skeleton Loading Elements */
+.skeleton-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.skeleton-card::after,
+.skeleton-step::after,
+.skeleton-row td::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton-line {
+  background-color: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.skeleton-line.label { width: 45%; height: 10px; }
+.skeleton-line.value-large { width: 65%; height: 26px; margin: 10px 0; }
+.skeleton-line.subtext { width: 80%; height: 10px; }
+
+.skeleton-line.title { width: 55%; height: 16px; }
+.skeleton-line.subtitle { width: 35%; height: 11px; }
+.skeleton-bar { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.07); border-radius: 4px; margin: 12px 0; }
+.skeleton-line.details { width: 75%; height: 11px; }
+
+.skeleton-step {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.skeleton-step .step-header { width: 30%; height: 14px; margin-bottom: 6px; }
+.skeleton-step .step-name { width: 60%; height: 12px; }
+
+.skeleton-row td {
+  padding: 14px 12px;
+  position: relative;
+}
+.skeleton-line.tracking { width: 100px; height: 14px; }
+.skeleton-line.text { width: 120px; height: 13px; }
+.skeleton-line.meta { width: 90px; height: 12px; }
+.skeleton-line.badge { width: 70px; height: 20px; border-radius: 10px; }
+.skeleton-line.pill { width: 65px; height: 18px; border-radius: 9px; }
+.skeleton-line.btn { width: 50px; height: 24px; border-radius: 4px; }
+
+/* Empty State Displays */
+.panel-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border-medium);
+  border-radius: 10px;
+  color: var(--text-muted);
+}
+
+.panel-empty-state .empty-icon,
+.table-empty-container .empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.panel-empty-state .empty-title,
+.table-empty-container .empty-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.panel-empty-state .empty-desc,
+.table-empty-container .empty-subtitle {
+  font-size: 0.8rem;
+  max-width: 380px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.table-empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.pipeline-empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.empty-corridor-card {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px dashed var(--border-subtle);
+}
+
+/* Header Inventory Chips */
+.panel-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inventory-stat-chip {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 3px 10px;
+}
+
+.inventory-stat-chip strong {
+  color: #93C5FD;
+}
+
+.inventory-alert-chip {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-light);
+  border: 1px solid var(--warning-border);
+  border-radius: 12px;
+  padding: 3px 10px;
+}
+
+.item-val.alert-warning {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.wh-status-badge.attention {
+  background: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.status-badge.badge-confirmed {
+  background: rgba(168, 85, 247, 0.15);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+.status-badge.badge-confirmed .badge-dot {
+  background-color: #C084FC;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease;
+}
+
+.waybill-modal {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.96) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ai-cyan);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-main);
+}
+
+.waybill-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.waybill-status-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+.waybill-priority-tag {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.waybill-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 580px) {
+  .waybill-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.waybill-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waybill-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary-blue);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+.waybill-data-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.data-key {
+  color: var(--text-dim);
+}
+
+.data-val {
+  color: var(--text-main);
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.waybill-audit-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.waybill-audit-footer code {
+  color: #93C5FD;
+  font-family: var(--font-mono);
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+

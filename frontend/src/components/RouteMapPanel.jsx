@@ -1,6 +1,7 @@
 import React from 'react';
 
-export default function RouteMapPanel({ corridors }) {
+export default function RouteMapPanel({ corridors = [] }) {
+
   return (
     <div className="map-panel" id="route-map-panel">
       <div className="panel-title-bar">
@@ -94,22 +95,29 @@ export default function RouteMapPanel({ corridors }) {
         {/* Corridor Telematics Side List */}
         <div className="corridors-list">
           <div className="corridors-title">Key Freight Corridors</div>
-          {corridors.map((corridor) => (
-            <div key={corridor.id} className="corridor-card">
-              <div className="corridor-header">
-                <span className="corridor-name">{corridor.name}</span>
-                <span className={`condition-pill ${corridor.statusType}`}>
-                  {corridor.trafficCondition}
-                </span>
-              </div>
-              <div className="corridor-stats">
-                <span>Active Loads: <strong>{corridor.shipmentsActive}</strong></span>
-                <span>Avg Speed: <strong>{corridor.avgSpeed}</strong></span>
-              </div>
+          {corridors.length === 0 ? (
+            <div className="empty-corridor-card">
+              <span>No corridor routes registered yet.</span>
             </div>
-          ))}
+          ) : (
+            corridors.map((corridor) => (
+              <div key={corridor.id} className="corridor-card">
+                <div className="corridor-header">
+                  <span className="corridor-name">{corridor.name}</span>
+                  <span className={`condition-pill ${corridor.statusType}`}>
+                    {corridor.trafficCondition}
+                  </span>
+                </div>
+                <div className="corridor-stats">
+                  <span>Active Loads: <strong>{corridor.shipmentsActive}</strong></span>
+                  <span>Avg Speed: <strong>{corridor.avgSpeed}</strong></span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 }
+
