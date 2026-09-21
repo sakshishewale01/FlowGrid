@@ -63,12 +63,17 @@ export const routesApi = {
   },
 
   /**
+   * Retrieves all shipments assigned to a specific route corridor.
+   */
+  async getRouteShipments(routeId) {
+    return apiClient.get(`/api/v1/routes/${routeId}/shipments`);
+  },
+
+  /**
    * Assigns a shipment to a route corridor (ADMIN, MANAGER).
    */
   async assignShipmentToRoute(routeId, shipmentId) {
-    return apiClient.post(`/api/v1/routes/${routeId}/shipments`, {
-      shipment_id: shipmentId,
-    });
+    return apiClient.post(`/api/v1/routes/${routeId}/shipments/${shipmentId}`, {});
   },
 
   /**

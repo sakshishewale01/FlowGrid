@@ -16,6 +16,13 @@ import NewShipmentModal from './components/NewShipmentModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import authApi from './api/auth';
 
+import WarehousesPage from './pages/WarehousesPage';
+import InventoryPage from './pages/InventoryPage';
+import DriversPage from './pages/DriversPage';
+import VehiclesPage from './pages/VehiclesPage';
+import ShipmentsPage from './pages/ShipmentsPage';
+import RoutesPage from './pages/RoutesPage';
+
 import { aiOptimizationInsights } from './data/mockLogisticsData';
 
 /**
@@ -26,7 +33,27 @@ function getInitialRoute() {
   const path = window.location.pathname.toLowerCase();
   if (path.includes('login')) return 'login';
   if (path.includes('register')) return 'register';
+  if (path.includes('warehouses')) return 'warehouses';
+  if (path.includes('inventory')) return 'inventory';
+  if (path.includes('drivers')) return 'drivers';
+  if (path.includes('vehicles')) return 'vehicles';
+  if (path.includes('shipments')) return 'shipments';
+  if (path.includes('routes')) return 'routes';
   return 'dashboard';
+}
+
+function getPageTitle(currentRoute) {
+  switch (currentRoute) {
+    case 'warehouses': return 'Warehouse Facilities';
+    case 'inventory': return 'Inventory Management';
+    case 'drivers': return 'Fleet Drivers';
+    case 'vehicles': return 'Fleet Vehicles';
+    case 'shipments': return 'Shipment Operations';
+    case 'routes': return 'Transit Corridors';
+    case 'dashboard':
+    default:
+      return 'Logistics Overview';
+  }
 }
 
 function AppContent() {
@@ -151,10 +178,11 @@ function AppContent() {
       <div className="app-layout" id="flowgrid-ops-center">
         {/* Dark Navy Sidebar */}
         <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          activeTab={route}
+          setActiveTab={(tab) => navigate(tab)}
           isOpen={isSidebarOpen}
           setIsOpen={setIsSidebarOpen}
+          onNavigate={navigate}
         />
 
         {/* Main Workspace */}
@@ -165,7 +193,7 @@ function AppContent() {
             backendHealth={backendHealth}
             isCheckingHealth={isCheckingHealth}
             onCheckHealth={checkBackendHealth}
-            pageTitle="Logistics Overview"
+            pageTitle={getPageTitle(route)}
           />
 
           {/* Global Toast Notification */}
@@ -177,119 +205,131 @@ function AppContent() {
             </div>
           )}
 
-          {/* Primary Dashboard Content */}
+          {/* Primary View Content */}
           <main className="dashboard-content" id="main-dashboard-view">
-            {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
-            <div className="dashboard-header-bar">
-              <div className="header-titles">
-                <div className="breadcrumbs">OPERATIONS CONTROL / {activeTab.toUpperCase()}</div>
-                <h1 className="dashboard-title">Logistics Overview</h1>
-                <p className="dashboard-caption">
-                  Unified freight coordination, multi-hub inventory, and live API telemetry.
-                </p>
-              </div>
+            {route === 'warehouses' && <WarehousesPage />}
+            {route === 'inventory' && <InventoryPage />}
+            {route === 'drivers' && <DriversPage />}
+            {route === 'vehicles' && <VehiclesPage />}
+            {route === 'shipments' && <ShipmentsPage />}
+            {route === 'routes' && <RoutesPage />}
 
-              <div className="header-meta-group">
-                <div className="facility-status-pill">
-                  <span className="indicator-dot online" />
-                  <span>{overview ? `${overview.total_warehouses} Warehouses Registered` : '3 Warehouses Optimal'}</span>
-                </div>
-                <div className="facility-status-pill">
-                  <span className="indicator-dot in-transit" />
-                  <span>{overview ? `${overview.total_drivers} Fleet Drivers` : 'Active Drivers'}</span>
-                </div>
-                <button
-                  className="btn-refresh-telematics"
-                  onClick={refetchDashboardData}
-                  disabled={isDataRefreshing || isDataLoading}
-                  title="Synchronize real-time operational data from backend"
-                >
-                  <svg
-                    className={isDataRefreshing ? 'spin-anim' : ''}
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <polyline points="23 4 23 10 17 10" />
-                    <polyline points="1 20 1 14 7 14" />
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                  </svg>
-                  <span>{isDataRefreshing ? 'Syncing...' : 'Sync Telematics'}</span>
-                </button>
-              </div>
-            </div>
+            {/* Default Summary Dashboard Route */}
+            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes'].includes(route)) && (
+              <>
+                {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
+                <div className="dashboard-header-bar">
+                  <div className="header-titles">
+                    <div className="breadcrumbs">OPERATIONS CONTROL / OVERVIEW</div>
+                    <h1 className="dashboard-title">Logistics Overview</h1>
+                    <p className="dashboard-caption">
+                      Unified freight coordination, multi-hub inventory, and live API telemetry.
+                    </p>
+                  </div>
 
-            {/* Dashboard Error Notice (If API Fails) */}
-            {dashboardError && (
-              <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
-                <div className="auth-alert-content">
-                  <span className="auth-alert-title">API Synchronization Notice</span>
-                  <span className="auth-alert-text">{dashboardError}</span>
+                  <div className="header-meta-group">
+                    <div className="facility-status-pill">
+                      <span className="indicator-dot online" />
+                      <span>{overview ? `${overview.total_warehouses} Warehouses Registered` : '3 Warehouses Optimal'}</span>
+                    </div>
+                    <div className="facility-status-pill">
+                      <span className="indicator-dot in-transit" />
+                      <span>{overview ? `${overview.total_drivers} Fleet Drivers` : 'Active Drivers'}</span>
+                    </div>
+                    <button
+                      className="btn-refresh-telematics"
+                      onClick={refetchDashboardData}
+                      disabled={isDataRefreshing || isDataLoading}
+                      title="Synchronize real-time operational data from backend"
+                    >
+                      <svg
+                        className={isDataRefreshing ? 'spin-anim' : ''}
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <polyline points="23 4 23 10 17 10" />
+                        <polyline points="1 20 1 14 7 14" />
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                      </svg>
+                      <span>{isDataRefreshing ? 'Syncing...' : 'Sync Telematics'}</span>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn-action outline"
-                  style={{ padding: '4px 12px', fontSize: '0.78rem' }}
-                  onClick={refetchDashboardData}
-                >
-                  Retry Connection
-                </button>
-              </div>
+
+                {/* Dashboard Error Notice (If API Fails) */}
+                {dashboardError && (
+                  <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
+                    <div className="auth-alert-content">
+                      <span className="auth-alert-title">API Synchronization Notice</span>
+                      <span className="auth-alert-text">{dashboardError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-action outline"
+                      style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+                      onClick={refetchDashboardData}
+                    >
+                      Retry Connection
+                    </button>
+                  </div>
+                )}
+
+                {/* Quick Action Buttons with Role Gating */}
+                <QuickActions onAction={handleQuickAction} />
+
+                {/* Summary KPI Cards (Connected to live backend overview) */}
+                <section className="metrics-grid" aria-label="Summary KPI Metrics">
+                  {metrics.length > 0 ? (
+                    metrics.map((metric) => (
+                      <MetricCard key={metric.id} metric={metric} loading={isDataLoading} />
+                    ))
+                  ) : (
+                    [1, 2, 3, 4].map((id) => (
+                      <MetricCard key={id} metric={null} loading={true} />
+                    ))
+                  )}
+                </section>
+
+                {/* Shipment Lifecycle Visualization (Connected to live shipment state counts) */}
+                <section className="dashboard-section" aria-label="Shipment Lifecycle Pipeline">
+                  <PipelineStepper stages={pipelineStages} loading={isDataLoading} />
+                </section>
+
+                {/* AI / Optimization Insight Panel */}
+                <section className="dashboard-section" aria-label="AI Optimization Insights">
+                  <AiInsightPanel 
+                    insights={aiOptimizationInsights} 
+                    onRunForecast={handleRunAiForecast}
+                  />
+                </section>
+
+                {/* Two-Column Middle Grid: Route Map & Warehouse Performance */}
+                <div className="dashboard-split-grid">
+                  <section className="split-col-map" aria-label="Freight Corridor Map">
+                    <RouteMapPanel corridors={corridors} loading={isDataLoading} />
+                  </section>
+                  <section className="split-col-wh" aria-label="Warehouse Facilities">
+                    <WarehouseCards 
+                      warehouses={warehouses} 
+                      loading={isDataLoading} 
+                      inventorySummary={inventorySummary}
+                    />
+                  </section>
+                </div>
+
+                {/* Recent Shipments Table (Connected to live shipments API) */}
+                <section className="dashboard-section" aria-label="Recent Shipments">
+                  <RecentShipmentsTable 
+                    shipments={recentShipments} 
+                    loading={isDataLoading} 
+                  />
+                </section>
+              </>
             )}
-
-            {/* Quick Action Buttons with Role Gating */}
-            <QuickActions onAction={handleQuickAction} />
-
-            {/* Summary KPI Cards (Connected to live backend overview) */}
-            <section className="metrics-grid" aria-label="Summary KPI Metrics">
-              {metrics.length > 0 ? (
-                metrics.map((metric) => (
-                  <MetricCard key={metric.id} metric={metric} loading={isDataLoading} />
-                ))
-              ) : (
-                [1, 2, 3, 4].map((id) => (
-                  <MetricCard key={id} metric={null} loading={true} />
-                ))
-              )}
-            </section>
-
-            {/* Shipment Lifecycle Visualization (Connected to live shipment state counts) */}
-            <section className="dashboard-section" aria-label="Shipment Lifecycle Pipeline">
-              <PipelineStepper stages={pipelineStages} loading={isDataLoading} />
-            </section>
-
-            {/* AI / Optimization Insight Panel */}
-            <section className="dashboard-section" aria-label="AI Optimization Insights">
-              <AiInsightPanel 
-                insights={aiOptimizationInsights} 
-                onRunForecast={handleRunAiForecast}
-              />
-            </section>
-
-            {/* Two-Column Middle Grid: Route Map & Warehouse Performance */}
-            <div className="dashboard-split-grid">
-              <section className="split-col-map" aria-label="Freight Corridor Map">
-                <RouteMapPanel corridors={corridors} loading={isDataLoading} />
-              </section>
-              <section className="split-col-wh" aria-label="Warehouse Facilities">
-                <WarehouseCards 
-                  warehouses={warehouses} 
-                  loading={isDataLoading} 
-                  inventorySummary={inventorySummary}
-                />
-              </section>
-            </div>
-
-            {/* Recent Shipments Table (Connected to live shipments API) */}
-            <section className="dashboard-section" aria-label="Recent Shipments">
-              <RecentShipmentsTable 
-                shipments={recentShipments} 
-                loading={isDataLoading} 
-              />
-            </section>
           </main>
 
           {/* Operational Footer */}
@@ -302,7 +342,7 @@ function AppContent() {
             <div className="footer-right">
               <span>FastAPI Backend: <code>http://127.0.0.1:8000</code></span>
               <span className="footer-separator">•</span>
-              <span>Phase 15 Live Data Integration</span>
+              <span>Phase 16 Entity Management & Operations</span>
             </div>
           </footer>
         </div>

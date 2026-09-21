@@ -3091,3 +3091,286 @@ body {
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* ==========================================================================
+   Phase 16: Dedicated Management Views, Tables, and Drawers
+   ========================================================================== */
+
+.management-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.page-header-bar {
+  margin-bottom: 4px;
+}
+
+.role-lock-tag {
+  font-size: 0.8rem;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+/* Filter Controls Bar */
+.filter-controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrapper svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.table-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.825rem;
+  transition: border-color var(--transition-fast);
+}
+
+.table-search-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.table-select-filter {
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.825rem;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.table-select-filter:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+.filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-tab {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.775rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border-color: var(--border-focus);
+}
+
+.filter-tab.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #38BDF8;
+  border-color: rgba(59, 130, 246, 0.4);
+  font-weight: 600;
+}
+
+/* Management Data Tables */
+.table-container {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+
+.ops-table thead {
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ops-table th {
+  padding: 12px 18px;
+  color: var(--text-muted);
+  font-size: 0.725rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ops-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.ops-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ops-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.id-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #38BDF8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.table-primary-text {
+  font-weight: 600;
+  color: #F8FAFC;
+  line-height: 1.3;
+}
+
+.table-secondary-text {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+}
+
+.table-empty-cell {
+  padding: 48px 24px !important;
+  text-align: center;
+}
+
+.empty-state-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-state-wrap .empty-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.empty-state-wrap .empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #F1F5F9;
+  margin: 0;
+}
+
+.empty-state-wrap .empty-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Modal sizing & Drawer Styles */
+.modal-card-large {
+  max-width: 680px;
+  width: 95%;
+}
+
+.drawer-card {
+  max-width: 740px;
+  width: 95%;
+}
+
+.manifest-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 640px) {
+  .manifest-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.manifest-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: var(--radius-sm);
+}
+
+.manifest-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.manifest-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.manifest-sub {
+  font-size: 0.725rem;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+.field-error-text {
+  font-size: 0.75rem;
+  color: #F87171;
+  margin-top: 4px;
+  display: block;
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+

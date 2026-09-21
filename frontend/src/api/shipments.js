@@ -63,22 +63,29 @@ export const shipmentsApi = {
   },
 
   /**
-   * Transitions shipment state machine (ADMIN, MANAGER, DRIVER).
+   * Transitions shipment state machine (ADMIN, MANAGER).
    */
   async transitionStatus(shipmentId, { status, remarks = null }) {
-    return apiClient.post(`/api/v1/shipments/${shipmentId}/transition`, {
+    return apiClient.patch(`/api/v1/shipments/${shipmentId}/status`, {
       status,
       remarks,
     });
   },
 
   /**
+   * Convenience alias for transitionStatus.
+   */
+  async updateStatus(shipmentId, { status, remarks = null }) {
+    return this.transitionStatus(shipmentId, { status, remarks });
+  },
+
+  /**
    * Assigns driver and vehicle resources to shipment (ADMIN, MANAGER).
    */
   async assignShipment(shipmentId, { driver_id, vehicle_id }) {
-    return apiClient.post(`/api/v1/shipments/${shipmentId}/assign`, {
-      driver_id,
-      vehicle_id,
+    return apiClient.patch(`/api/v1/shipments/${shipmentId}`, {
+      assigned_driver_id: driver_id,
+      assigned_vehicle_id: vehicle_id,
     });
   },
 };
