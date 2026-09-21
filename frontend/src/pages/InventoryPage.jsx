@@ -5,6 +5,7 @@ import { inventoryApi } from '../api/inventory.js';
 import { warehousesApi } from '../api/warehouses.js';
 import { productsApi } from '../api/products.js';
 import { formatErrorMessage } from '../api/client.js';
+import { exportInventoryToCSV } from '../services/exportService.js';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
@@ -57,6 +58,16 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleExportCSV = () => {
+    try {
+      const targetList = filteredInventory.length > 0 ? filteredInventory : inventory;
+      const count = exportInventoryToCSV(targetList);
+      toast.success(`Exported ${count} inventory records to CSV`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to export inventory');
+    }
+  };
 
   const getStockStatus = (item) => {
     if (item.quantity === 0) return 'OUT_OF_STOCK';
@@ -291,6 +302,21 @@ export default function InventoryPage() {
             Depleted ({outOfStockCount})
           </button>
         </div>
+
+        <button
+          type="button"
+          className="fg-export-btn"
+          onClick={handleExportCSV}
+          title="Download filtered inventory as CSV spreadsheet"
+          disabled={loading || inventory.length === 0}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Export CSV</span>
+        </button>
       </div>
 
       {/* Reusable Data Table */}

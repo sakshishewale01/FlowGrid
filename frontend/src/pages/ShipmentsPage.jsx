@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { shipmentsApi } from '../api/shipments.js';
 import { formatErrorMessage } from '../api/client.js';
+import { exportShipmentsToCSV } from '../services/exportService.js';
+import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
@@ -9,6 +11,7 @@ import ShipmentDetailDrawer from '../components/ShipmentDetailDrawer';
 import NewShipmentModal from '../components/NewShipmentModal';
 
 export default function ShipmentsPage() {
+  const { toast } = useToast();
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +39,16 @@ export default function ShipmentsPage() {
   useEffect(() => {
     fetchShipments();
   }, [fetchShipments]);
+
+  const handleExportCSV = () => {
+    try {
+      const targetList = filteredShipments.length > 0 ? filteredShipments : shipments;
+      const count = exportShipmentsToCSV(targetList);
+      toast.success(`Exported ${count} shipment records to CSV`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to export shipments');
+    }
+  };
 
   const filteredShipments = useMemo(() => {
     return shipments.filter((s) => {
@@ -225,6 +238,21 @@ export default function ShipmentsPage() {
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          className="fg-export-btn"
+          onClick={handleExportCSV}
+          title="Download filtered shipments as CSV spreadsheet"
+          disabled={loading || shipments.length === 0}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Export CSV</span>
+        </button>
       </div>
 
       {/* Reusable Data Table */}

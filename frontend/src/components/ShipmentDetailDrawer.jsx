@@ -8,6 +8,7 @@ import { vehiclesApi } from '../api/vehicles.js';
 import { formatErrorMessage } from '../api/client.js';
 import StatusBadge from './StatusBadge';
 import ConfirmDialog from './ConfirmDialog';
+import ShipmentRouteMap from './ShipmentRouteMap';
 
 /**
  * Adheres strictly to backend ALLOWED_TRANSITIONS state machine rules:
@@ -43,8 +44,11 @@ export default function ShipmentDetailDrawer({
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'tracking' | 'history'
   const [history, setHistory] = useState([]);
   const [events, setEvents] = useState([]);
+  const [latestTracking, setLatestTracking] = useState(null);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [timelineError, setTimelineError] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Available drivers & vehicles for assignment
   const [drivers, setDrivers] = useState([]);
@@ -69,13 +73,16 @@ export default function ShipmentDetailDrawer({
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const loadTimelineData = useCallback(async (shipmentId) => {
-    setLoadingTimeline(true);
+  const loadTimelineData = useCallback(async (shipmentId, showLoadingSpinner = true) => {
+    if (showLoadingSpinner) {
+      setLoadingTimeline(true);
+    }
     setTimelineError(null);
     try {
-      const [histData, evData] = await Promise.allSettled([
+      const [histData, evData, latestData] = await Promise.allSettled([
         trackingApi.getStatusHistory(shipmentId),
         trackingApi.getTrackingEvents(shipmentId),
+        trackingApi.getLatestTrackingInfo(shipmentId),
       ]);
 
       if (histData.status === 'fulfilled') {
@@ -84,10 +91,15 @@ export default function ShipmentDetailDrawer({
       if (evData.status === 'fulfilled') {
         setEvents(evData.value || []);
       }
+      if (latestData.status === 'fulfilled') {
+        setLatestTracking(latestData.value || null);
+      }
     } catch (err) {
       setTimelineError(formatErrorMessage(err));
     } finally {
-      setLoadingTimeline(false);
+      if (showLoadingSpinner) {
+        setLoadingTimeline(false);
+      }
     }
   }, []);
 
@@ -117,6 +129,29 @@ export default function ShipmentDetailDrawer({
       setShowAssignPanel(false);
     }
   }, [shipment, isOpen, loadTimelineData]);
+
+  // Polling interval (15s) when live polling is active
+  useEffect(() => {
+    if (!isOpen || !shipment?.id || !isPolling) return;
+    const interval = setInterval(() => {
+      loadTimelineData(shipment.id, false);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isOpen, shipment?.id, isPolling, loadTimelineData]);
+
+  // Manual refresh handler
+  const handleRefreshTracking = async () => {
+    if (!shipment?.id) return;
+    setIsRefreshing(true);
+    try {
+      await loadTimelineData(shipment.id, true);
+      toast.success('Live tracking telemetry refreshed');
+    } catch {
+      toast.error('Failed to refresh tracking data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   if (!isOpen || !shipment) return null;
 
@@ -301,7 +336,7 @@ export default function ShipmentDetailDrawer({
                 fontSize: '0.85rem'
               }}
             >
-              Waypoints & Telematics ({events.length})
+              Route & Live Tracking ({events.length})
             </button>
             <button
               type="button"
@@ -661,9 +696,99 @@ export default function ShipmentDetailDrawer({
             </div>
           )}
 
-          {/* TAB 2: Waypoint Checkpoints */}
+          {/* TAB 2: Route & Live Tracking */}
           {activeTab === 'tracking' && (
             <div className="drawer-content-body" style={{ padding: '0 24px 20px', maxHeight: '58vh', overflowY: 'auto' }}>
+              {/* Telemetry Control Bar */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '14px',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F1F5F9' }}>
+                    Telemetry & Freight Corridor
+                  </span>
+                  <button
+                    type="button"
+                    className={`poll-toggle-pill ${isPolling ? 'active' : ''}`}
+                    onClick={() => setIsPolling(!isPolling)}
+                    title="Toggle automatic 15-second live telemetry refresh"
+                  >
+                    <span className="poll-pulse-dot" />
+                    <span>{isPolling ? 'Live Polling: 15s' : 'Enable Live Polling'}</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="fg-export-btn"
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  onClick={handleRefreshTracking}
+                  disabled={isRefreshing || loadingTimeline}
+                  title="Force refresh status and waypoints"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    className={isRefreshing ? 'rotating-spin' : ''}
+                  >
+                    <polyline points="23 4 23 10 17 10" />
+                    <polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
+              </div>
+
+              {/* Telemetry Cards Grid */}
+              <div className="telemetry-card-grid">
+                <div className="telemetry-card">
+                  <span className="telemetry-card-label">Current Position / Hub</span>
+                  <span className="telemetry-card-value">
+                    {latestTracking?.latest_event?.location || events[0]?.location || (shipment.origin_warehouse ? shipment.origin_warehouse.name : 'Origin Dispatch')}
+                  </span>
+                  <span className="telemetry-card-sub">
+                    {latestTracking?.latest_event?.event_type || 'ORIGIN DEPOSIT'}
+                  </span>
+                </div>
+
+                <div className="telemetry-card">
+                  <span className="telemetry-card-label">Latest Milestone</span>
+                  <span className="telemetry-card-value" style={{ fontSize: '0.82rem' }}>
+                    {latestTracking?.latest_event?.description || events[0]?.description || 'Shipment registered in FlowGrid network'}
+                  </span>
+                  <span className="telemetry-card-sub">
+                    {latestTracking?.latest_event?.timestamp
+                      ? new Date(latestTracking.latest_event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                      : 'Initial creation'}
+                  </span>
+                </div>
+
+                <div className="telemetry-card">
+                  <span className="telemetry-card-label">Transit State</span>
+                  <div style={{ marginTop: '2px' }}>
+                    <StatusBadge status={shipment.status} />
+                  </div>
+                  <span className="telemetry-card-sub" style={{ marginTop: '4px' }}>
+                    {events.length} logged waypoint{events.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+
+              {/* Interactive Route Map */}
+              <div style={{ marginBottom: '18px' }}>
+                <ShipmentRouteMap shipment={shipment} trackingEvents={events} height="300px" />
+              </div>
+
+              {/* Record Physical Waypoint Form */}
               {isAuthorized && (
                 <div className="add-event-box" style={{
                   marginBottom: '18px',
@@ -686,7 +811,7 @@ export default function ShipmentDetailDrawer({
                         <input
                           type="text"
                           className="form-input"
-                          placeholder="Location (e.g. Weigh Station #4, Gary IN)"
+                          placeholder="Location (e.g. Toledo Transit Point, OH or 41.65, -83.53)"
                           value={eventLocation}
                           onChange={(e) => setEventLocation(e.target.value)}
                           disabled={isAddingEvent}
@@ -721,10 +846,11 @@ export default function ShipmentDetailDrawer({
                 </div>
               )}
 
-              {loadingTimeline ? (
+              {/* Waypoint Chronological Checkpoints */}
+              {loadingTimeline && !isPolling ? (
                 <div style={{ padding: '16px', color: '#94A3B8' }}>Loading waypoint history...</div>
               ) : events.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#64748B' }}>
+                <div style={{ padding: '20px', textAlign: 'center', color: '#64748B', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '6px' }}>
                   No waypoint checkpoints recorded for this shipment yet.
                 </div>
               ) : (
@@ -741,14 +867,21 @@ export default function ShipmentDetailDrawer({
                         height: '10px',
                         borderRadius: '50%',
                         background: '#38BDF8',
-                        marginTop: '6px'
+                        marginTop: '6px',
+                        boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)'
                       }} />
-                      <div>
-                        <div style={{ fontSize: '0.85rem', color: '#F1F5F9', fontWeight: 600 }}>
-                          {ev.location}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#F1F5F9', fontWeight: 600 }}>
+                            {ev.location}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: '#64748B', fontFamily: 'monospace' }}>
+                            {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                          {ev.timestamp ? new Date(ev.timestamp).toLocaleString() : 'Checkpoint logged'}
+                        <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '2px' }}>
+                          {ev.timestamp ? new Date(ev.timestamp).toLocaleDateString() : 'Checkpoint logged'}
+                          {ev.description && ` • "${ev.description}"`}
                           {ev.notes && ` • "${ev.notes}"`}
                         </div>
                       </div>
