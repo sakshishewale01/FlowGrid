@@ -6,7 +6,7 @@ Pydantic models for warehouse creation, modification, and response serialization
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WarehouseBase(BaseModel):
@@ -37,13 +37,24 @@ class WarehouseBase(BaseModel):
     capacity: int = Field(
         ...,
         gt=0,
-        description="Total storage capacity in square feet or pallet units (must be greater than 0)",
+        le=50000000,
+        description="Total storage capacity in square feet or pallet units (must be > 0 and <= 50,000,000)",
         examples=[50000],
     )
     is_active: bool = Field(
         default=True,
         description="Operational status of the warehouse facility",
     )
+
+    @field_validator("name", "location", "address", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
 
 
 class WarehouseCreate(WarehouseBase):
@@ -80,12 +91,23 @@ class WarehouseUpdate(BaseModel):
     capacity: Optional[int] = Field(
         default=None,
         gt=0,
-        description="Updated storage capacity (must be greater than 0)",
+        le=50000000,
+        description="Updated storage capacity (must be > 0 and <= 50,000,000)",
     )
     is_active: Optional[bool] = Field(
         default=None,
         description="Updated operational status",
     )
+
+    @field_validator("name", "location", "address", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
 
 
 class WarehouseResponse(WarehouseBase):

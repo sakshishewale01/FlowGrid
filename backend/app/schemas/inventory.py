@@ -28,13 +28,15 @@ class InventoryBase(BaseModel):
     quantity: int = Field(
         default=0,
         ge=0,
-        description="On-hand stock balance (must be greater than or equal to 0)",
+        le=10000000,
+        description="On-hand stock balance (must be >= 0 and <= 10,000,000)",
         examples=[100],
     )
     reorder_level: int = Field(
         default=10,
         ge=0,
-        description="Threshold below which reordering is triggered (must be greater than or equal to 0)",
+        le=1000000,
+        description="Threshold below which reordering is triggered (must be >= 0 and <= 1,000,000)",
         examples=[15],
     )
 
@@ -55,13 +57,15 @@ class InventoryUpdate(BaseModel):
     quantity: Optional[int] = Field(
         default=None,
         ge=0,
-        description="Updated on-hand stock quantity (>= 0)",
+        le=10000000,
+        description="Updated on-hand stock quantity (>= 0 and <= 10,000,000)",
         examples=[120],
     )
     reorder_level: Optional[int] = Field(
         default=None,
         ge=0,
-        description="Updated replenishment threshold (>= 0)",
+        le=1000000,
+        description="Updated replenishment threshold (>= 0 and <= 1,000,000)",
         examples=[20],
     )
 

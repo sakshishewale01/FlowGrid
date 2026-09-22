@@ -81,7 +81,16 @@ class InventoryService:
                 ),
             )
 
-        # 4. Create and persist the inventory record
+        # 4. Check warehouse capacity limit
+        existing_items = self.repository.get_all(db, warehouse_id=payload.warehouse_id, limit=10000)
+        current_total = sum(item.quantity for item in existing_items)
+        if current_total + payload.quantity > warehouse.capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Total warehouse inventory ({current_total + payload.quantity} units) would exceed warehouse capacity ({warehouse.capacity} units)",
+            )
+
+        # 5. Create and persist the inventory record
         inventory = Inventory(
             warehouse_id=payload.warehouse_id,
             product_id=payload.product_id,
@@ -134,6 +143,19 @@ class InventoryService:
         inventory = self.get_inventory(db, inventory_id)
 
         update_data = payload.model_dump(exclude_unset=True)
+
+        if "quantity" in update_data and update_data["quantity"] is not None:
+            new_qty = update_data["quantity"]
+            warehouse = self.warehouse_repo.get_by_id(db, inventory.warehouse_id)
+            if warehouse:
+                existing_items = self.repository.get_all(db, warehouse_id=inventory.warehouse_id, limit=10000)
+                current_total = sum(item.quantity for item in existing_items if item.id != inventory_id)
+                if current_total + new_qty > warehouse.capacity:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Total warehouse inventory ({current_total + new_qty} units) would exceed warehouse capacity ({warehouse.capacity} units)",
+                    )
+
         if update_data:
             inventory = self.repository.update(db, inventory, update_data)
         return inventory

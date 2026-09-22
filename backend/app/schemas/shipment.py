@@ -4,10 +4,10 @@ Shipment Schemas
 Pydantic schemas for shipment creation, updates, status transitions, and serialized responses.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.shipment import ShipmentStatus
 
@@ -89,24 +89,53 @@ class ShipmentBase(BaseModel):
     )
     total_weight_kg: Optional[Decimal] = Field(
         default=None,
-        ge=0,
+        gt=0,
+        le=100000,
         decimal_places=2,
         max_digits=10,
-        description="Total cargo weight in kilograms",
+        description="Total cargo weight in kilograms (must be positive, <= 100,000 kg)",
         examples=[450.00],
     )
     total_volume_cbm: Optional[Decimal] = Field(
         default=None,
-        ge=0,
+        gt=0,
+        le=1000,
         decimal_places=2,
         max_digits=10,
-        description="Total cargo volume in cubic meters",
+        description="Total cargo volume in cubic meters (must be positive, <= 1,000 cbm)",
         examples=[3.20],
     )
     scheduled_pickup_at: Optional[datetime] = Field(
         default=None,
         description="Scheduled pickup window timestamp",
     )
+
+    @field_validator(
+        "destination_address",
+        "destination_city",
+        "destination_state",
+        "destination_postal_code",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_strings(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("scheduled_pickup_at", mode="before")
+    @classmethod
+    def validate_scheduled_date(cls, v: Optional[datetime]) -> Optional[datetime]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = datetime.fromisoformat(v)
+        if isinstance(v, datetime) and v.year < 2020:
+            raise ValueError("Scheduled pickup timestamp cannot be earlier than year 2020")
+        return v
 
 
 class ShipmentCreate(ShipmentBase):
@@ -122,6 +151,16 @@ class ShipmentCreate(ShipmentBase):
         examples=["FG-20260919-AB12CD34"],
     )
 
+    @field_validator("tracking_number", mode="before")
+    @classmethod
+    def sanitize_tracking(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                return None
+            return cleaned.upper()
+        return v
+
 
 class ShipmentUpdate(BaseModel):
     """
@@ -135,9 +174,37 @@ class ShipmentUpdate(BaseModel):
     destination_postal_code: Optional[str] = Field(default=None, min_length=2, max_length=20)
     assigned_driver_id: Optional[int] = Field(default=None, gt=0)
     assigned_vehicle_id: Optional[int] = Field(default=None, gt=0)
-    total_weight_kg: Optional[Decimal] = Field(default=None, ge=0)
-    total_volume_cbm: Optional[Decimal] = Field(default=None, ge=0)
+    total_weight_kg: Optional[Decimal] = Field(default=None, gt=0, le=100000)
+    total_volume_cbm: Optional[Decimal] = Field(default=None, gt=0, le=1000)
     scheduled_pickup_at: Optional[datetime] = None
+
+    @field_validator(
+        "destination_address",
+        "destination_city",
+        "destination_state",
+        "destination_postal_code",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("scheduled_pickup_at", mode="before")
+    @classmethod
+    def validate_scheduled_date(cls, v: Optional[datetime]) -> Optional[datetime]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = datetime.fromisoformat(v)
+        if isinstance(v, datetime) and v.year < 2020:
+            raise ValueError("Scheduled pickup timestamp cannot be earlier than year 2020")
+        return v
+
 
 
 class ShipmentStatusUpdate(BaseModel):

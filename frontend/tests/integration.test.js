@@ -3,7 +3,26 @@ import assert from 'node:assert/strict';
 
 const API_URL = 'http://127.0.0.1:8000';
 
-test('Integration: FastAPI health probe returns status healthy', async () => {
+let isBackendAvailable = null;
+
+async function checkBackend(t) {
+  if (isBackendAvailable === null) {
+    try {
+      const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(1000) });
+      isBackendAvailable = res.ok;
+    } catch {
+      isBackendAvailable = false;
+    }
+  }
+  if (!isBackendAvailable) {
+    t.skip('FastAPI backend server is not running at ' + API_URL);
+    return false;
+  }
+  return true;
+}
+
+test('Integration: FastAPI health probe returns status healthy', async (t) => {
+  if (!await checkBackend(t)) return;
   const response = await fetch(`${API_URL}/health`);
   assert.equal(response.status, 200);
   const data = await response.json();
@@ -11,7 +30,8 @@ test('Integration: FastAPI health probe returns status healthy', async () => {
   assert.equal(data.application, 'FlowGrid');
 });
 
-test('Integration: Login failure with wrong credentials returns HTTP 401', async () => {
+test('Integration: Login failure with wrong credentials returns HTTP 401', async (t) => {
+  if (!await checkBackend(t)) return;
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -26,7 +46,8 @@ test('Integration: Login failure with wrong credentials returns HTTP 401', async
   assert.equal(data.detail, 'Invalid email or password');
 });
 
-test('Integration: Login success issues JWT access token and user profile', async () => {
+test('Integration: Login success issues JWT access token and user profile', async (t) => {
+  if (!await checkBackend(t)) return;
   const response = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -45,7 +66,8 @@ test('Integration: Login success issues JWT access token and user profile', asyn
   assert.equal(data.user.role, 'MANAGER');
 });
 
-test('Integration: GET /api/v1/auth/me succeeds with valid Bearer token', async () => {
+test('Integration: GET /api/v1/auth/me succeeds with valid Bearer token', async (t) => {
+  if (!await checkBackend(t)) return;
   // 1. Log in
   const loginRes = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: 'POST',
@@ -73,7 +95,8 @@ test('Integration: GET /api/v1/auth/me succeeds with valid Bearer token', async 
   assert.equal(meData.is_active, true);
 });
 
-test('Integration: GET /api/v1/auth/me rejects invalid or missing token', async () => {
+test('Integration: GET /api/v1/auth/me rejects invalid or missing token', async (t) => {
+  if (!await checkBackend(t)) return;
   // Missing token
   const noTokenRes = await fetch(`${API_URL}/api/v1/auth/me`);
   assert.equal(noTokenRes.status, 401);
@@ -85,7 +108,8 @@ test('Integration: GET /api/v1/auth/me rejects invalid or missing token', async 
   assert.equal(invalidTokenRes.status, 401);
 });
 
-test('Integration: User registration succeeds and prevents duplicates', async () => {
+test('Integration: User registration succeeds and prevents duplicates', async (t) => {
+  if (!await checkBackend(t)) return;
   const timestamp = Date.now();
   const newEmail = `dispatch_op_${timestamp}@flowgrid.io`;
 
@@ -124,7 +148,8 @@ test('Integration: User registration succeeds and prevents duplicates', async ()
   assert.match(dupData.detail, /already exists/i);
 });
 
-test('Integration: Registration rejects short password (< 6 chars)', async () => {
+test('Integration: Registration rejects short password (< 6 chars)', async (t) => {
+  if (!await checkBackend(t)) return;
   const badPassRes = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

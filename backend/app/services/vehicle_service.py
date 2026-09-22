@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.vehicle import Vehicle
+from app.models.shipment import Shipment, ShipmentStatus
 from app.repositories.vehicle_repository import vehicle_repository
 from app.schemas.vehicle import VehicleCreate, VehicleUpdate
 
@@ -104,7 +105,25 @@ class VehicleService:
             update_data["vehicle_type"] = update_data["vehicle_type"].strip()
 
         if "status" in update_data and update_data["status"] is not None:
-            update_data["status"] = update_data["status"].strip().upper()
+            new_status = update_data["status"].strip().upper()
+            if new_status in ("MAINTENANCE", "DECOMMISSIONED") and vehicle.status not in ("MAINTENANCE", "DECOMMISSIONED"):
+                active_shipments_count = db.query(Shipment).filter(
+                    Shipment.assigned_vehicle_id == vehicle_id,
+                    Shipment.status.in_([
+                        ShipmentStatus.CREATED,
+                        ShipmentStatus.CONFIRMED,
+                        ShipmentStatus.ASSIGNED,
+                        ShipmentStatus.PICKED_UP,
+                        ShipmentStatus.IN_TRANSIT,
+                        ShipmentStatus.OUT_FOR_DELIVERY,
+                    ]),
+                ).count()
+                if active_shipments_count > 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cannot change vehicle status to {new_status} while assigned to {active_shipments_count} active shipment(s)",
+                    )
+            update_data["status"] = new_status
 
         if update_data:
             return self.repository.update(db, vehicle, update_data)
@@ -116,6 +135,22 @@ class VehicleService:
         Raises HTTP 404 if not found.
         """
         vehicle = self.get_vehicle(db, vehicle_id)
+        active_shipments_count = db.query(Shipment).filter(
+            Shipment.assigned_vehicle_id == vehicle_id,
+            Shipment.status.in_([
+                ShipmentStatus.CREATED,
+                ShipmentStatus.CONFIRMED,
+                ShipmentStatus.ASSIGNED,
+                ShipmentStatus.PICKED_UP,
+                ShipmentStatus.IN_TRANSIT,
+                ShipmentStatus.OUT_FOR_DELIVERY,
+            ]),
+        ).count()
+        if active_shipments_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot delete vehicle with ID {vehicle_id} while assigned to {active_shipments_count} active shipment(s)",
+            )
         self.repository.delete(db, vehicle)
         return {
             "message": f"Vehicle with ID {vehicle_id} was deleted successfully",

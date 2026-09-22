@@ -6,8 +6,16 @@ Pydantic schemas for fleet vehicle registration, updates, and serialized respons
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, Set
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+VALID_VEHICLE_STATUSES: Set[str] = {
+    "AVAILABLE",
+    "IN_USE",
+    "MAINTENANCE",
+    "DECOMMISSIONED",
+}
 
 
 class VehicleBase(BaseModel):
@@ -31,9 +39,10 @@ class VehicleBase(BaseModel):
     capacity: Decimal = Field(
         ...,
         gt=0,
+        le=150000,
         decimal_places=2,
         max_digits=10,
-        description="Maximum carrying capacity in kilograms (must be greater than 0)",
+        description="Maximum carrying capacity in kilograms (must be > 0 and <= 150,000 kg)",
         examples=[18000.00],
     )
     status: str = Field(
@@ -43,6 +52,28 @@ class VehicleBase(BaseModel):
         description="Current fleet operational status (e.g. AVAILABLE, IN_USE, MAINTENANCE, DECOMMISSIONED)",
         examples=["AVAILABLE"],
     )
+
+    @field_validator("registration_number", "vehicle_type", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip().upper()
+            if cleaned not in VALID_VEHICLE_STATUSES:
+                raise ValueError(
+                    f"Invalid vehicle status '{v}'. Allowed statuses: {sorted(list(VALID_VEHICLE_STATUSES))}"
+                )
+            return cleaned
+        return v
 
 
 class VehicleCreate(VehicleBase):
@@ -73,9 +104,10 @@ class VehicleUpdate(BaseModel):
     capacity: Optional[Decimal] = Field(
         default=None,
         gt=0,
+        le=150000,
         decimal_places=2,
         max_digits=10,
-        description="Updated carrying capacity (must be greater than 0)",
+        description="Updated carrying capacity (must be > 0 and <= 150,000 kg)",
     )
     status: Optional[str] = Field(
         default=None,
@@ -83,6 +115,28 @@ class VehicleUpdate(BaseModel):
         max_length=20,
         description="Updated vehicle operational status",
     )
+
+    @field_validator("registration_number", "vehicle_type", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip().upper()
+            if cleaned not in VALID_VEHICLE_STATUSES:
+                raise ValueError(
+                    f"Invalid vehicle status '{v}'. Allowed statuses: {sorted(list(VALID_VEHICLE_STATUSES))}"
+                )
+            return cleaned
+        return v
 
 
 class VehicleResponse(VehicleBase):

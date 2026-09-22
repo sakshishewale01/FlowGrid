@@ -5,9 +5,18 @@ Pydantic schemas for driver profiles, creation, updates, and serialized response
 """
 
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional, Set
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.user import UserRole
+
+
+VALID_DRIVER_STATUSES: Set[str] = {
+    "AVAILABLE",
+    "ON_DUTY",
+    "IN_TRANSIT",
+    "OFF_DUTY",
+    "SUSPENDED",
+}
 
 
 class UserDriverSummary(BaseModel):
@@ -51,9 +60,31 @@ class DriverBase(BaseModel):
         default="AVAILABLE",
         min_length=2,
         max_length=20,
-        description="Current operational status (e.g. AVAILABLE, ON_DUTY, IN_TRANSIT, OFF_DUTY)",
+        description="Current operational status (e.g. AVAILABLE, ON_DUTY, IN_TRANSIT, OFF_DUTY, SUSPENDED)",
         examples=["AVAILABLE"],
     )
+
+    @field_validator("license_number", "phone_number", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("availability_status", mode="before")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if isinstance(v, str):
+            cleaned = v.strip().upper()
+            if cleaned not in VALID_DRIVER_STATUSES:
+                raise ValueError(
+                    f"Invalid driver availability status '{v}'. Allowed statuses: {sorted(list(VALID_DRIVER_STATUSES))}"
+                )
+            return cleaned
+        return v
 
 
 class DriverCreate(DriverBase):
@@ -87,6 +118,28 @@ class DriverUpdate(BaseModel):
         max_length=20,
         description="Updated availability status",
     )
+
+    @field_validator("license_number", "phone_number", mode="before")
+    @classmethod
+    def sanitize_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip()
+            if not cleaned:
+                raise ValueError("Value cannot be blank or whitespace-only")
+            return cleaned
+        return v
+
+    @field_validator("availability_status", mode="before")
+    @classmethod
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and isinstance(v, str):
+            cleaned = v.strip().upper()
+            if cleaned not in VALID_DRIVER_STATUSES:
+                raise ValueError(
+                    f"Invalid driver availability status '{v}'. Allowed statuses: {sorted(list(VALID_DRIVER_STATUSES))}"
+                )
+            return cleaned
+        return v
 
 
 class DriverResponse(BaseModel):

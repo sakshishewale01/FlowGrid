@@ -10,7 +10,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.driver import Driver
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.driver_repository import driver_repository
 from app.schemas.driver import DriverCreate, DriverUpdate
 
@@ -39,6 +39,11 @@ class DriverService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"User account '{user.email}' (ID {payload.user_id}) is deactivated",
+            )
+        if user.role == UserRole.VIEWER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User account '{user.email}' has role VIEWER and cannot be linked to a driver profile",
             )
 
         # 2. Check if user already has an assigned driver profile

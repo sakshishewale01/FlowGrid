@@ -114,6 +114,16 @@ class ShipmentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Driver with ID {payload.assigned_driver_id} does not exist",
                 )
+            if drv.availability_status in ("OFF_DUTY", "SUSPENDED"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Driver with ID {payload.assigned_driver_id} is {drv.availability_status} and cannot be assigned",
+                )
+            if drv.user and not drv.user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Driver user account is deactivated",
+                )
 
         # 4. Validate Vehicle if assigned
         if payload.assigned_vehicle_id is not None:
@@ -123,6 +133,17 @@ class ShipmentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Vehicle with ID {payload.assigned_vehicle_id} does not exist",
                 )
+            if veh.status in ("MAINTENANCE", "DECOMMISSIONED"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Vehicle with ID {payload.assigned_vehicle_id} is in {veh.status} status and cannot be assigned",
+                )
+            if payload.total_weight_kg is not None and veh.capacity is not None:
+                if payload.total_weight_kg > veh.capacity:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Shipment weight ({payload.total_weight_kg} kg) exceeds vehicle carrying capacity ({veh.capacity} kg)",
+                    )
 
         shipment = Shipment(
             tracking_number=normalized_tracking,
@@ -246,6 +267,16 @@ class ShipmentService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Driver with ID {update_data['assigned_driver_id']} does not exist",
                 )
+            if drv.availability_status in ("OFF_DUTY", "SUSPENDED"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Driver with ID {update_data['assigned_driver_id']} is {drv.availability_status} and cannot be assigned",
+                )
+            if drv.user and not drv.user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Driver user account is deactivated",
+                )
 
         # Validate vehicle if changed
         if "assigned_vehicle_id" in update_data and update_data["assigned_vehicle_id"] is not None:
@@ -254,6 +285,22 @@ class ShipmentService:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Vehicle with ID {update_data['assigned_vehicle_id']} does not exist",
+                )
+            if veh.status in ("MAINTENANCE", "DECOMMISSIONED"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Vehicle with ID {update_data['assigned_vehicle_id']} is in {veh.status} status and cannot be assigned",
+                )
+
+        # Validate cargo weight against vehicle capacity
+        effective_vehicle_id = update_data.get("assigned_vehicle_id", shipment.assigned_vehicle_id)
+        effective_weight = update_data.get("total_weight_kg", shipment.total_weight_kg)
+        if effective_vehicle_id is not None and effective_weight is not None:
+            veh = self.vehicle_repo.get_by_id(db, effective_vehicle_id)
+            if veh and veh.capacity is not None and effective_weight > veh.capacity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Shipment weight ({effective_weight} kg) exceeds vehicle carrying capacity ({veh.capacity} kg)",
                 )
 
         # Strip strings

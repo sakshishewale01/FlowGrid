@@ -62,7 +62,6 @@ function getPageTitle(currentRoute) {
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [route, setRoute] = useState(getInitialRoute);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [backendHealth, setBackendHealth] = useState(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
