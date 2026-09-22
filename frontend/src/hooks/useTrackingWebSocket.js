@@ -13,8 +13,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { getWsBaseUrl, getStoredToken } from '../api/client';
+import { getWsBaseUrl, getStoredToken } from '../api/client.js';
 
 export const WS_STATUS = {
   CONNECTING: 'CONNECTING',
@@ -25,13 +24,14 @@ export const WS_STATUS = {
 
 export function useTrackingWebSocket({
   shipmentId,
+  token: customToken = null,
   enabled = true,
   onEvent = null,
 } = {}) {
-  const { token: authToken } = useAuth();
   const [connectionStatus, setConnectionStatus] = useState(WS_STATUS.DISCONNECTED);
   const [lastEvent, setLastEvent] = useState(null);
   const [errorDetail, setErrorDetail] = useState(null);
+
 
   const socketRef = useRef(null);
   const onEventRef = useRef(onEvent);
@@ -61,11 +61,12 @@ export function useTrackingWebSocket({
   }, []);
 
   const connect = useCallback(() => {
-    const token = authToken || getStoredToken();
+    const token = customToken || getStoredToken();
     if (!enabled || !shipmentId || !token) {
       disconnect();
       return;
     }
+
 
     // Clean up existing socket before opening a new one
     if (socketRef.current) {
@@ -129,7 +130,7 @@ export function useTrackingWebSocket({
       setConnectionStatus(WS_STATUS.ERROR);
       setErrorDetail(err.message || 'Failed to initialize WebSocket');
     }
-  }, [shipmentId, enabled, authToken, disconnect]);
+  }, [shipmentId, enabled, customToken, disconnect]);
 
   useEffect(() => {
     if (enabled && shipmentId) {

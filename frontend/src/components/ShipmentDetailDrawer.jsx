@@ -41,7 +41,8 @@ export default function ShipmentDetailDrawer({
   shipment = null,
   onUpdated,
 }) {
-  const { user } = useAuth();
+  const { user, token: authToken } = useAuth();
+
   const { toast } = useToast();
   const { notifyShipmentStatus } = useNotifications();
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'MANAGER';
@@ -198,9 +199,11 @@ export default function ShipmentDetailDrawer({
     reconnect: reconnectWs,
   } = useTrackingWebSocket({
     shipmentId: shipment?.id,
+    token: authToken,
     enabled: isOpen && Boolean(shipment?.id),
     onEvent: handleWsEvent,
   });
+
 
   // Manual refresh handler
   const handleRefreshTracking = async () => {
