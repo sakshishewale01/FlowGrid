@@ -21,6 +21,12 @@ class OverviewAnalyticsResponse(BaseModel):
     total_products: int = Field(..., description="Total commercial SKUs in catalog")
     total_drivers: int = Field(..., description="Total field drivers in fleet")
     active_routes: int = Field(..., description="Active transit corridors and routes")
+    total_vehicles: int = Field(default=0, description="Total fleet vehicles registered")
+    available_vehicles: int = Field(default=0, description="Fleet vehicles available for dispatch")
+    on_time_delivery_rate: float = Field(default=0.0, description="Percentage of delivered shipments completed on time")
+    average_delivery_duration_hours: Optional[float] = Field(default=None, description="Historical average transit duration in hours")
+    average_delay_duration_hours: Optional[float] = Field(default=None, description="Historical average delay magnitude in hours")
+    overall_warehouse_utilization_rate: float = Field(default=0.0, description="Network-wide warehouse capacity utilization percentage")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,9 +46,15 @@ class ShipmentAnalyticsResponse(BaseModel):
     Detailed shipment lifecycle, status, and throughput analytics.
     """
     total_shipments: int = Field(..., description="Total shipments within the requested window")
+    active_shipments: int = Field(default=0, description="Shipments currently active in transit")
     by_status: Dict[str, int] = Field(..., description="Shipment distribution grouped by status")
     by_date: List[ShipmentDateCount] = Field(default_factory=list, description="Chronological shipment volume")
     delivery_completion_rate: float = Field(..., description="Percentage of shipments delivered (0.0 to 100.0)")
+    on_time_delivery_rate: float = Field(default=0.0, description="Percentage of delivered shipments completed on time")
+    late_delivery_rate: float = Field(default=0.0, description="Percentage of delivered shipments arriving late")
+    average_delivery_duration_hours: Optional[float] = Field(default=None, description="Average transit duration in hours")
+    average_delay_duration_hours: Optional[float] = Field(default=None, description="Average delay duration in hours")
+    historical_delay_frequency_rate: float = Field(default=0.0, description="Frequency percentage of shipments experiencing delay exceptions")
     cancelled_shipments: int = Field(..., description="Shipments marked as CANCELLED")
     returned_shipments: int = Field(..., description="Shipments marked as RETURNED")
 
@@ -101,6 +113,7 @@ class WarehouseSummaryItem(BaseModel):
     is_active: bool = Field(..., description="Operational status flag")
     total_products: int = Field(..., description="Number of distinct product lines stored")
     total_stock_quantity: int = Field(..., description="Gross physical items on site")
+    capacity_utilization_rate: float = Field(default=0.0, description="Percentage of capacity currently utilized")
     low_stock_items: int = Field(..., description="Count of low stock items at this facility")
 
     model_config = ConfigDict(from_attributes=True)
@@ -113,6 +126,10 @@ class WarehouseAnalyticsResponse(BaseModel):
     total_warehouses: int = Field(..., description="Total warehouses in the network")
     active_warehouses: int = Field(..., description="Number of active warehouses")
     inactive_warehouses: int = Field(..., description="Number of inactive or decommissioned warehouses")
+    total_capacity: int = Field(default=0, description="Gross storage capacity across active warehouses")
+    total_inventory_quantity: int = Field(default=0, description="Total physical units stored across network")
+    overall_capacity_utilization_rate: float = Field(default=0.0, description="Network-wide capacity utilization percentage")
+    low_stock_items_count: int = Field(default=0, description="Total inventory lines below reorder threshold")
     warehouses_summary: List[WarehouseSummaryItem] = Field(default_factory=list, description="Detailed list of all facilities")
 
     model_config = ConfigDict(from_attributes=True)
@@ -145,3 +162,68 @@ class RouteAnalyticsResponse(BaseModel):
     routes_summary: List[RouteSummaryItem] = Field(default_factory=list, description="Corridor summary items")
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DriverSummaryItem(BaseModel):
+    """
+    Individual driver performance and dispatch summary.
+    """
+    driver_id: int = Field(..., description="Driver primary key ID")
+    name: str = Field(..., description="Driver full name")
+    license_number: str = Field(..., description="Driver commercial license number")
+    availability_status: str = Field(..., description="Current availability state")
+    is_active: bool = Field(..., description="Whether user account is active")
+    active_shipments_count: int = Field(default=0, description="Number of currently active shipments assigned")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DriverAnalyticsResponse(BaseModel):
+    """
+    Fleet driver workforce utilization and availability analytics.
+    """
+    total_drivers: int = Field(..., description="Total registered driver profiles")
+    active_drivers: int = Field(..., description="Drivers with active user accounts")
+    available_drivers: int = Field(..., description="Drivers ready for assignment (AVAILABLE)")
+    on_duty_drivers: int = Field(..., description="Drivers on shift (ON_DUTY)")
+    in_transit_drivers: int = Field(..., description="Drivers currently navigating active freight (IN_TRANSIT)")
+    off_duty_drivers: int = Field(..., description="Drivers off shift (OFF_DUTY)")
+    suspended_drivers: int = Field(..., description="Drivers temporarily suspended (SUSPENDED)")
+    driver_utilization_rate: float = Field(..., description="Percentage of active drivers engaged (ON_DUTY + IN_TRANSIT)")
+    by_status: Dict[str, int] = Field(..., description="Distribution of drivers grouped by status")
+    drivers_summary: List[DriverSummaryItem] = Field(default_factory=list, description="List of driver performance summaries")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VehicleSummaryItem(BaseModel):
+    """
+    Individual fleet vehicle status and operational profile.
+    """
+    vehicle_id: int = Field(..., description="Vehicle primary key ID")
+    registration_number: str = Field(..., description="Vehicle registration or license plate")
+    vehicle_type: str = Field(..., description="Vehicle classification (Semi-Trailer, Box Truck, Van)")
+    capacity_kg: float = Field(..., description="Carrying capacity in kilograms")
+    status: str = Field(..., description="Operational status (AVAILABLE, IN_USE, MAINTENANCE, DECOMMISSIONED)")
+    active_shipments_count: int = Field(default=0, description="Number of active shipments currently assigned")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VehicleAnalyticsResponse(BaseModel):
+    """
+    Fleet vehicle utilization, capacity, and status distribution.
+    """
+    total_vehicles: int = Field(..., description="Total registered fleet transport units")
+    available_vehicles: int = Field(..., description="Vehicles ready for assignment (AVAILABLE)")
+    in_use_vehicles: int = Field(..., description="Vehicles actively assigned to active freight (IN_USE)")
+    maintenance_vehicles: int = Field(..., description="Vehicles out of service for repairs (MAINTENANCE)")
+    decommissioned_vehicles: int = Field(..., description="Vehicles permanently retired (DECOMMISSIONED)")
+    total_fleet_capacity_kg: float = Field(..., description="Total carrying capacity in kg across fleet")
+    vehicle_utilization_rate: float = Field(..., description="Percentage of fleet currently in use")
+    by_status: Dict[str, int] = Field(..., description="Distribution of vehicles grouped by status")
+    by_type: Dict[str, int] = Field(..., description="Distribution of vehicles grouped by vehicle type")
+    vehicles_summary: List[VehicleSummaryItem] = Field(default_factory=list, description="List of vehicle summaries")
+
+    model_config = ConfigDict(from_attributes=True)
+

@@ -8,6 +8,8 @@
  * - Inventory balances & replenishment alerts
  * - Recent line-haul shipments
  * - Freight corridors & transit routes
+ * - Fleet driver workforce utilization & availability
+ * - Fleet vehicle capacity & status breakdown
  *
  * Resilience Features:
  * - Uses Promise.allSettled to prevent single endpoint failures from crashing the UI.
@@ -38,6 +40,8 @@ export function useDashboardData() {
   const [recentShipments, setRecentShipments] = useState([]);
   const [corridors, setCorridors] = useState([]);
   const [inventorySummary, setInventorySummary] = useState(null);
+  const [driverAnalytics, setDriverAnalytics] = useState(null);
+  const [vehicleAnalytics, setVehicleAnalytics] = useState(null);
 
   const isMountedRef = useRef(true);
 
@@ -100,6 +104,8 @@ export function useDashboardData() {
         shipmentsApi.listShipments({ limit: 10 }),
         analyticsApi.getRouteAnalytics(),
         warehousesApi.listWarehouses({ limit: 10 }),
+        analyticsApi.getDriverAnalytics(),
+        analyticsApi.getVehicleAnalytics(),
       ]);
 
       if (!isMountedRef.current) return;
@@ -112,12 +118,26 @@ export function useDashboardData() {
         shipmentsListRes,
         routeAnalyticsRes,
         warehousesListRes,
+        driverAnalyticsRes,
+        vehicleAnalyticsRes,
       ] = results;
 
       // 1. Process Overview & KPI Metrics
       if (overviewRes.status === 'fulfilled' && overviewRes.value) {
         const ov = overviewRes.value;
         setOverview(ov);
+
+        const onTimeText = ov.on_time_delivery_rate !== undefined
+          ? `${ov.on_time_delivery_rate}% on-time`
+          : 'On-time verified';
+
+        const delaySubtext = ov.average_delay_duration_hours !== null && ov.average_delay_duration_hours !== undefined
+          ? `Avg delay: ${ov.average_delay_duration_hours} hrs`
+          : 'Failed or returned freight legs';
+
+        const transitSubtext = ov.average_delivery_duration_hours !== null && ov.average_delivery_duration_hours !== undefined
+          ? `Avg duration: ${ov.average_delivery_duration_hours} hrs`
+          : 'Active freight in movement';
 
         setMetrics([
           {
@@ -136,7 +156,7 @@ export function useDashboardData() {
             value: Number(ov.active_shipments || 0).toLocaleString(),
             change: `${ov.total_drivers || 0} active drivers`,
             changeType: 'neutral',
-            subtext: 'Active freight in movement',
+            subtext: transitSubtext,
             icon: 'Truck',
             accentColor: '#3B82F6',
           },
@@ -144,9 +164,7 @@ export function useDashboardData() {
             id: 'delivered',
             label: 'Delivered',
             value: Number(ov.delivered_shipments || 0).toLocaleString(),
-            change: ov.total_shipments > 0
-              ? `${Math.round((ov.delivered_shipments / ov.total_shipments) * 100)}% completion`
-              : '0% completion',
+            change: onTimeText,
             changeType: 'positive',
             subtext: 'Verified consignee signatures',
             icon: 'CheckCircle',
@@ -158,7 +176,7 @@ export function useDashboardData() {
             value: Number(ov.delayed_or_failed_shipments || 0).toLocaleString(),
             change: ov.delayed_or_failed_shipments > 0 ? 'Requires attention' : 'All on schedule',
             changeType: ov.delayed_or_failed_shipments > 0 ? 'warning' : 'positive',
-            subtext: 'Failed or returned freight legs',
+            subtext: delaySubtext,
             icon: 'AlertTriangle',
             accentColor: '#EF4444',
           },
@@ -351,6 +369,16 @@ export function useDashboardData() {
         setCorridors(mapped);
       }
 
+      // 7. Process Driver Analytics
+      if (driverAnalyticsRes.status === 'fulfilled' && driverAnalyticsRes.value) {
+        setDriverAnalytics(driverAnalyticsRes.value);
+      }
+
+      // 8. Process Vehicle Analytics
+      if (vehicleAnalyticsRes.status === 'fulfilled' && vehicleAnalyticsRes.value) {
+        setVehicleAnalytics(vehicleAnalyticsRes.value);
+      }
+
       // Check if all primary queries failed
       const criticalFailures = results.filter((r) => r.status === 'rejected');
       if (criticalFailures.length === results.length) {
@@ -383,6 +411,8 @@ export function useDashboardData() {
     recentShipments,
     corridors,
     inventorySummary,
+    driverAnalytics,
+    vehicleAnalytics,
     refetch: () => loadData(true),
   };
 }

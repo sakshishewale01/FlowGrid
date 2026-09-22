@@ -7,6 +7,8 @@
  * - getInventoryAnalytics (GET /api/v1/analytics/inventory)
  * - getWarehouseAnalytics (GET /api/v1/analytics/warehouses)
  * - getRouteAnalytics (GET /api/v1/analytics/routes)
+ * - getDriverAnalytics (GET /api/v1/analytics/drivers)
+ * - getVehicleAnalytics (GET /api/v1/analytics/vehicles)
  */
 
 import { apiClient } from './client.js';
@@ -57,6 +59,20 @@ export const analyticsApi = {
     if (end_date) params.append('end_date', end_date);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get(`/api/v1/analytics/routes${qs}`);
+  },
+
+  /**
+   * Retrieves driver workforce status distribution, active accounts, and utilization.
+   */
+  async getDriverAnalytics() {
+    return apiClient.get('/api/v1/analytics/drivers');
+  },
+
+  /**
+   * Retrieves fleet vehicle status distribution, vehicle type breakdown, capacity, and utilization.
+   */
+  async getVehicleAnalytics() {
+    return apiClient.get('/api/v1/analytics/vehicles');
   },
 };
 

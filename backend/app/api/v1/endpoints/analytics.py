@@ -2,7 +2,7 @@
 Analytics and Dashboard Endpoints
 =================================
 API router providing high-performance operational metrics, throughput analytics,
-inventory alerts, and fleet corridor performance.
+inventory alerts, fleet corridor performance, driver availability, and vehicle fleet utilization.
 
 Permissions:
 - All authenticated roles (ADMIN, MANAGER, DRIVER, VIEWER) can read analytics data.
@@ -22,6 +22,8 @@ from app.schemas.analytics import (
     InventoryAnalyticsResponse,
     WarehouseAnalyticsResponse,
     RouteAnalyticsResponse,
+    DriverAnalyticsResponse,
+    VehicleAnalyticsResponse,
 )
 from app.services.analytics_service import analytics_service
 
@@ -33,7 +35,7 @@ router = APIRouter()
     response_model=OverviewAnalyticsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get overview statistics",
-    description="Retrieves high-level operational KPIs spanning shipments, facilities, products, drivers, and routes. Accessible to all authenticated users.",
+    description="Retrieves high-level operational KPIs spanning shipments, facilities, products, drivers, fleet vehicles, and routes. Accessible to all authenticated users.",
 )
 def get_overview_statistics(
     start_date: Optional[date] = Query(
@@ -62,7 +64,7 @@ def get_overview_statistics(
     response_model=ShipmentAnalyticsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get shipment analytics",
-    description="Retrieves shipment lifecycle distribution, daily throughput volume, delivery completion rates, and exception counts. Accessible to all authenticated users.",
+    description="Retrieves shipment lifecycle distribution, daily throughput volume, delivery completion rates, on-time performance, and exception counts. Accessible to all authenticated users.",
 )
 def get_shipment_analytics(
     start_date: Optional[date] = Query(
@@ -79,7 +81,7 @@ def get_shipment_analytics(
     current_user: User = Depends(get_current_user),
 ) -> ShipmentAnalyticsResponse:
     """
-    Returns shipment status distribution and chronological volume.
+    Returns shipment status distribution, chronological volume, and delivery performance.
     """
     return analytics_service.get_shipments(
         db, start_date=start_date, end_date=end_date
@@ -108,7 +110,7 @@ def get_inventory_analytics(
     response_model=WarehouseAnalyticsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get warehouse analytics",
-    description="Retrieves network-wide warehouse counts (active vs inactive) and facility capacity profiles. Accessible to all authenticated users.",
+    description="Retrieves network-wide warehouse counts (active vs inactive), capacity utilization, and facility profiles. Accessible to all authenticated users.",
 )
 def get_warehouse_analytics(
     db: Session = Depends(get_db),
@@ -147,3 +149,37 @@ def get_route_analytics(
     return analytics_service.get_routes(
         db, start_date=start_date, end_date=end_date
     )
+
+
+@router.get(
+    "/drivers",
+    response_model=DriverAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get driver analytics",
+    description="Retrieves driver workforce status distribution, active user account counts, driver utilization rates, and assigned shipment workload. Accessible to all authenticated users.",
+)
+def get_driver_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DriverAnalyticsResponse:
+    """
+    Returns fleet driver workforce and availability metrics.
+    """
+    return analytics_service.get_drivers(db)
+
+
+@router.get(
+    "/vehicles",
+    response_model=VehicleAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get vehicle analytics",
+    description="Retrieves fleet vehicle status distribution, vehicle type breakdown, total carrying capacity, and utilization rates. Accessible to all authenticated users.",
+)
+def get_vehicle_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> VehicleAnalyticsResponse:
+    """
+    Returns fleet vehicle utilization, capacity, and status distribution.
+    """
+    return analytics_service.get_vehicles(db)

@@ -17,6 +17,8 @@ from app.schemas.analytics import (
     InventoryAnalyticsResponse,
     WarehouseAnalyticsResponse,
     RouteAnalyticsResponse,
+    DriverAnalyticsResponse,
+    VehicleAnalyticsResponse,
 )
 
 
@@ -121,6 +123,20 @@ class AnalyticsService:
             db, start_datetime=start_dt, end_datetime=end_dt
         )
         return RouteAnalyticsResponse(**raw_data)
+
+    def get_drivers(self, db: Session) -> DriverAnalyticsResponse:
+        """
+        Calculates driver availability distribution, active user accounts, and utilization.
+        """
+        raw_data = self.repository.get_driver_analytics(db)
+        return DriverAnalyticsResponse(**raw_data)
+
+    def get_vehicles(self, db: Session) -> VehicleAnalyticsResponse:
+        """
+        Calculates fleet vehicle status distribution, carrying capacity, and utilization.
+        """
+        raw_data = self.repository.get_vehicle_analytics(db)
+        return VehicleAnalyticsResponse(**raw_data)
 
 
 analytics_service = AnalyticsService()

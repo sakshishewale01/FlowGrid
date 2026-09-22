@@ -57,4 +57,7 @@ test('API Services: analyticsApi has all expected methods', () => {
   assert.equal(typeof analyticsApi.getInventoryAnalytics, 'function');
   assert.equal(typeof analyticsApi.getWarehouseAnalytics, 'function');
   assert.equal(typeof analyticsApi.getRouteAnalytics, 'function');
+  assert.equal(typeof analyticsApi.getDriverAnalytics, 'function');
+  assert.equal(typeof analyticsApi.getVehicleAnalytics, 'function');
 });
+
