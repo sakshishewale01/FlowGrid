@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     shipments,
     routes,
     analytics,
+    pipeline,
 )
 
 api_router = APIRouter()
@@ -81,3 +82,11 @@ api_router.include_router(
     prefix="/analytics",
     tags=["Analytics"],
 )
+
+# Register AI-ready data pipeline endpoints under /pipeline
+api_router.include_router(
+    pipeline.router,
+    prefix="/pipeline",
+    tags=["AI Data Pipeline"],
+)
+
