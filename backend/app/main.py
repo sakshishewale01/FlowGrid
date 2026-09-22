@@ -198,6 +198,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # ------------------------------------------------------------------------------
 app.include_router(api_router, prefix="/api/v1")
 
+from app.api.v1.endpoints.ws_tracking import router as ws_tracking_router
+app.include_router(ws_tracking_router)
+
+
 # ------------------------------------------------------------------------------
 # 8. Base & Health Endpoints
 # ------------------------------------------------------------------------------

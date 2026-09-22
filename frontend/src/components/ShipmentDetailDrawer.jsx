@@ -9,6 +9,10 @@ import { formatErrorMessage } from '../api/client.js';
 import StatusBadge from './StatusBadge';
 import ConfirmDialog from './ConfirmDialog';
 import ShipmentRouteMap from './ShipmentRouteMap';
+import useTrackingWebSocket, { WS_STATUS } from '../hooks/useTrackingWebSocket.js';
+import { useNotifications } from '../context/NotificationContext';
+
+
 
 /**
  * Adheres strictly to backend ALLOWED_TRANSITIONS state machine rules:
@@ -39,7 +43,9 @@ export default function ShipmentDetailDrawer({
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { notifyShipmentStatus } = useNotifications();
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'tracking' | 'history'
   const [history, setHistory] = useState([]);
@@ -139,6 +145,63 @@ export default function ShipmentDetailDrawer({
     return () => clearInterval(interval);
   }, [isOpen, shipment?.id, isPolling, loadTimelineData]);
 
+  // Real-time WebSocket Event Handler
+  const handleWsEvent = useCallback(
+    (event) => {
+      if (!shipment?.id) return;
+      if (event.event === 'STATUS_UPDATED') {
+        loadTimelineData(shipment.id, false);
+        if (onUpdated) {
+          onUpdated({
+            ...shipment,
+            status: event.data?.status || shipment.status,
+          });
+        }
+        if (notifyShipmentStatus) {
+          notifyShipmentStatus({
+            shipmentId: shipment.id,
+            trackingNumber: shipment.tracking_number,
+            status: event.data?.status || shipment.status,
+            remarks: event.data?.remarks,
+          });
+        }
+        toast.info(
+          `Live Update: Status changed to ${event.data?.status?.replace(/_/g, ' ') || 'New Status'}`
+        );
+
+      } else if (event.event === 'TRACKING_EVENT_ADDED') {
+        loadTimelineData(shipment.id, false);
+        toast.info(
+          `Live Checkpoint: ${event.data?.location || 'New checkpoint recorded'}`
+        );
+      } else if (event.event === 'SHIPMENT_UPDATED') {
+        loadTimelineData(shipment.id, false);
+        if (onUpdated) {
+          onUpdated({
+            ...shipment,
+            assigned_driver_id:
+              event.data?.assigned_driver_id ?? shipment.assigned_driver_id,
+            assigned_vehicle_id:
+              event.data?.assigned_vehicle_id ?? shipment.assigned_vehicle_id,
+          });
+        }
+      }
+    },
+    [shipment, loadTimelineData, onUpdated, toast, notifyShipmentStatus]
+  );
+
+
+  // Connect tracking WebSocket
+  const {
+    connectionStatus,
+    errorDetail: wsErrorDetail,
+    reconnect: reconnectWs,
+  } = useTrackingWebSocket({
+    shipmentId: shipment?.id,
+    enabled: isOpen && Boolean(shipment?.id),
+    onEvent: handleWsEvent,
+  });
+
   // Manual refresh handler
   const handleRefreshTracking = async () => {
     if (!shipment?.id) return;
@@ -152,6 +215,7 @@ export default function ShipmentDetailDrawer({
       setIsRefreshing(false);
     }
   };
+
 
   if (!isOpen || !shipment) return null;
 
@@ -170,9 +234,18 @@ export default function ShipmentDetailDrawer({
       });
 
       toast.success(`Shipment advanced to ${nextStatus.replace(/_/g, ' ')}`);
+      if (notifyShipmentStatus) {
+        notifyShipmentStatus({
+          shipmentId: shipment.id,
+          trackingNumber: shipment.tracking_number,
+          status: nextStatus,
+          remarks: customRemarks || statusRemarks.trim() || undefined,
+        });
+      }
       if (onUpdated) onUpdated(updated);
       loadTimelineData(shipment.id);
       setStatusRemarks('');
+
     } catch (err) {
       const errMsg = formatErrorMessage(err);
       setStatusError(errMsg);
@@ -283,12 +356,79 @@ export default function ShipmentDetailDrawer({
               </svg>
             </div>
             <div className="modal-header-text">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <h2 className="modal-title" style={{ fontFamily: 'monospace', letterSpacing: '0.04em' }}>
                   {shipment.tracking_number}
                 </h2>
                 <StatusBadge status={shipment.status} />
+                <span
+                  className={`ws-header-pill ${connectionStatus.toLowerCase()}`}
+                  title={
+                    connectionStatus === WS_STATUS.CONNECTED
+                      ? 'Live real-time WebSocket connection active'
+                      : connectionStatus === WS_STATUS.CONNECTING
+                      ? 'Connecting live tracking socket...'
+                      : connectionStatus === WS_STATUS.ERROR
+                      ? `WebSocket error: ${wsErrorDetail || 'Connection failed'}. Click to reconnect.`
+                      : 'WebSocket disconnected. Click to reconnect.'
+                  }
+                  onClick={connectionStatus !== WS_STATUS.CONNECTED ? reconnectWs : undefined}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '0.70rem',
+                    fontWeight: 600,
+                    cursor: connectionStatus !== WS_STATUS.CONNECTED ? 'pointer' : 'default',
+                    background:
+                      connectionStatus === WS_STATUS.CONNECTED
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : connectionStatus === WS_STATUS.CONNECTING
+                        ? 'rgba(234, 179, 8, 0.15)'
+                        : connectionStatus === WS_STATUS.ERROR
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : 'rgba(100, 116, 139, 0.15)',
+                    color:
+                      connectionStatus === WS_STATUS.CONNECTED
+                        ? '#10B981'
+                        : connectionStatus === WS_STATUS.CONNECTING
+                        ? '#EAB308'
+                        : connectionStatus === WS_STATUS.ERROR
+                        ? '#EF4444'
+                        : '#94A3B8',
+                    border: `1px solid ${
+                      connectionStatus === WS_STATUS.CONNECTED
+                        ? 'rgba(16, 185, 129, 0.3)'
+                        : connectionStatus === WS_STATUS.CONNECTING
+                        ? 'rgba(234, 179, 8, 0.3)'
+                        : connectionStatus === WS_STATUS.ERROR
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(100, 116, 139, 0.3)'
+                    }`,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: 'currentColor',
+                    }}
+                  />
+                  <span>
+                    {connectionStatus === WS_STATUS.CONNECTED
+                      ? 'Live'
+                      : connectionStatus === WS_STATUS.CONNECTING
+                      ? 'Connecting...'
+                      : connectionStatus === WS_STATUS.ERROR
+                      ? 'WS Error'
+                      : 'Offline'}
+                  </span>
+                </span>
               </div>
+
               <p className="modal-subtitle">
                 Manifest #{shipment.id} • Registered {shipment.created_at ? new Date(shipment.created_at).toLocaleDateString() : 'Active'}
               </p>
@@ -712,6 +852,74 @@ export default function ShipmentDetailDrawer({
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F1F5F9' }}>
                     Telemetry & Freight Corridor
                   </span>
+                  {/* Real-time WebSocket Status Pill */}
+                  <button
+                    type="button"
+                    className={`ws-control-pill ${connectionStatus.toLowerCase()}`}
+                    onClick={connectionStatus !== WS_STATUS.CONNECTED ? reconnectWs : undefined}
+                    title={
+                      connectionStatus === WS_STATUS.CONNECTED
+                        ? 'FastAPI WebSocket connected'
+                        : connectionStatus === WS_STATUS.CONNECTING
+                        ? 'Connecting to /ws/tracking...'
+                        : connectionStatus === WS_STATUS.ERROR
+                        ? `WebSocket Error: ${wsErrorDetail || 'Failed'}. Click to retry.`
+                        : 'WebSocket disconnected. Click to reconnect.'
+                    }
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      cursor: connectionStatus !== WS_STATUS.CONNECTED ? 'pointer' : 'default',
+                      background:
+                        connectionStatus === WS_STATUS.CONNECTED
+                          ? 'rgba(16, 185, 129, 0.15)'
+                          : connectionStatus === WS_STATUS.CONNECTING
+                          ? 'rgba(234, 179, 8, 0.15)'
+                          : connectionStatus === WS_STATUS.ERROR
+                          ? 'rgba(239, 68, 68, 0.15)'
+                          : 'rgba(100, 116, 139, 0.15)',
+                      color:
+                        connectionStatus === WS_STATUS.CONNECTED
+                          ? '#10B981'
+                          : connectionStatus === WS_STATUS.CONNECTING
+                          ? '#EAB308'
+                          : connectionStatus === WS_STATUS.ERROR
+                          ? '#EF4444'
+                          : '#94A3B8',
+                      border: `1px solid ${
+                        connectionStatus === WS_STATUS.CONNECTED
+                          ? 'rgba(16, 185, 129, 0.35)'
+                          : connectionStatus === WS_STATUS.CONNECTING
+                          ? 'rgba(234, 179, 8, 0.35)'
+                          : connectionStatus === WS_STATUS.ERROR
+                          ? 'rgba(239, 68, 68, 0.35)'
+                          : 'rgba(100, 116, 139, 0.35)'
+                      }`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: 'currentColor',
+                      }}
+                    />
+                    <span>
+                      {connectionStatus === WS_STATUS.CONNECTED
+                        ? '⚡ Live WS: Connected'
+                        : connectionStatus === WS_STATUS.CONNECTING
+                        ? '⚡ Live WS: Connecting...'
+                        : connectionStatus === WS_STATUS.ERROR
+                        ? '⚡ Live WS: Error'
+                        : '⚡ Live WS: Disconnected'}
+                    </span>
+                  </button>
                   <button
                     type="button"
                     className={`poll-toggle-pill ${isPolling ? 'active' : ''}`}
@@ -721,6 +929,7 @@ export default function ShipmentDetailDrawer({
                     <span className="poll-pulse-dot" />
                     <span>{isPolling ? 'Live Polling: 15s' : 'Enable Live Polling'}</span>
                   </button>
+
                 </div>
 
                 <button

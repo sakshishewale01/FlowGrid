@@ -34,8 +34,11 @@ from app.schemas.tracking import (
 )
 from app.services.shipment_service import shipment_service
 from app.services.tracking_service import tracking_service
+from app.services.connection_manager import tracking_connection_manager
+from datetime import datetime, timezone
 
 router = APIRouter()
+
 
 
 # ------------------------------------------------------------------------------
@@ -162,7 +165,23 @@ def update_shipment(
     """
     Updates shipment information or raises 404 if not found.
     """
-    return shipment_service.update_shipment(db, shipment_id, payload)
+    res = shipment_service.update_shipment(db, shipment_id, payload)
+    tracking_connection_manager.broadcast_sync(
+        shipment_id,
+        {
+            "event": "SHIPMENT_UPDATED",
+            "shipment_id": shipment_id,
+            "data": {
+                "status": res.status.value,
+                "assigned_driver_id": res.assigned_driver_id,
+                "assigned_vehicle_id": res.assigned_vehicle_id,
+                "destination_city": res.destination_city,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        },
+    )
+    return res
+
 
 
 @router.patch(
@@ -183,9 +202,24 @@ def update_shipment_status(
     """
     Transitions shipment state or raises 400 if the transition is illegal.
     """
-    return shipment_service.update_shipment_status(
+    res = shipment_service.update_shipment_status(
         db, shipment_id, payload, current_user=current_user
     )
+    tracking_connection_manager.broadcast_sync(
+        shipment_id,
+        {
+            "event": "STATUS_UPDATED",
+            "shipment_id": shipment_id,
+            "data": {
+                "status": res.status.value,
+                "tracking_number": res.tracking_number,
+                "remarks": payload.remarks,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        },
+    )
+    return res
+
 
 
 @router.delete(
@@ -248,9 +282,25 @@ def add_tracking_event(
     """
     Records a new physical tracking event or raises 404 if the shipment does not exist.
     """
-    return tracking_service.add_tracking_event(
+    res = tracking_service.add_tracking_event(
         db, shipment_id, payload, current_user=current_user
     )
+    tracking_connection_manager.broadcast_sync(
+        shipment_id,
+        {
+            "event": "TRACKING_EVENT_ADDED",
+            "shipment_id": shipment_id,
+            "data": {
+                "id": res.id,
+                "event_type": res.event_type,
+                "location": res.location,
+                "description": res.description,
+                "timestamp": res.timestamp.isoformat() if res.timestamp else datetime.now(timezone.utc).isoformat(),
+            },
+        },
+    )
+    return res
+
 
 
 @router.get(

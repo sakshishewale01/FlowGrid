@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import RoleBadge from './RoleBadge';
+import NotificationPanel from './NotificationPanel';
+
 
 export default function TopNavbar({ 
   onToggleSidebar, 
@@ -10,8 +13,11 @@ export default function TopNavbar({
   pageTitle = "Logistics Overview"
 }) {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const profileMenuRef = useRef(null);
+
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -109,14 +115,35 @@ export default function TopNavbar({
           </button>
         </div>
 
-        {/* Notifications Icon with Badge */}
-        <div className="nav-icon-button" id="btn-nav-notifications" title="3 unread dispatch alerts">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-          </svg>
-          <span className="notification-badge">3</span>
+        {/* Notifications Icon with Badge & Dropdown Panel */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className="nav-icon-button"
+            id="btn-nav-notifications"
+            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            aria-expanded={isNotificationOpen}
+            aria-label={`${unreadCount} notifications`}
+            title={unreadCount > 0 ? `${unreadCount} unread alerts` : 'Notifications'}
+            style={{ position: 'relative', cursor: 'pointer', background: 'none', border: 'none' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            {unreadCount > 0 && (
+              <span className="notification-badge" style={{ pointerEvents: 'none' }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationPanel
+            isOpen={isNotificationOpen}
+            onClose={() => setIsNotificationOpen(false)}
+          />
         </div>
+
 
         {/* User Profile Badge with Interactive Dropdown */}
         <div className="profile-menu-container" ref={profileMenuRef}>

@@ -30,6 +30,15 @@ export const getApiBaseUrl = () => {
 export const API_BASE_URL = getApiBaseUrl();
 
 /**
+ * Determine WebSocket Base URL derived from API base URL (ws:// or wss://).
+ */
+export const getWsBaseUrl = () => {
+  const httpUrl = getApiBaseUrl();
+  return httpUrl.replace(/^http/, 'ws');
+};
+
+
+/**
  * Retrieve the stored JWT token from localStorage.
  */
 export const getStoredToken = () => {

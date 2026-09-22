@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
+
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import Sidebar from './components/Sidebar';
@@ -363,8 +365,11 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+        </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
   );
 }
+
