@@ -669,6 +669,7 @@ def test_all_authenticated_roles_access(client, admin_headers, manager_headers, 
         "/api/v1/analytics/routes",
         "/api/v1/analytics/drivers",
         "/api/v1/analytics/vehicles",
+        "/api/v1/analytics/delay-risk",
     ]
     for headers in [admin_headers, manager_headers, driver_headers, viewer_headers]:
         for ep in endpoints:
@@ -686,10 +687,12 @@ def test_unauthenticated_access_rejected(client):
         "/api/v1/analytics/routes",
         "/api/v1/analytics/drivers",
         "/api/v1/analytics/vehicles",
+        "/api/v1/analytics/delay-risk",
     ]
     for ep in endpoints:
         res = client.get(ep)
         assert res.status_code == status.HTTP_401_UNAUTHORIZED, f"Expected 401 for {ep}"
+
 
 
 # ==============================================================================

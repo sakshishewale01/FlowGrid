@@ -40,6 +40,10 @@ from app.services.analytics_service import (
     AnalyticsService,
     analytics_service,
 )
+from app.services.delay_risk_service import (
+    DelayRiskService,
+    delay_risk_service,
+)
 
 __all__ = [
     "WarehouseService",
@@ -60,5 +64,8 @@ __all__ = [
     "route_service",
     "AnalyticsService",
     "analytics_service",
+    "DelayRiskService",
+    "delay_risk_service",
 ]
+
 

@@ -227,3 +227,86 @@ class VehicleAnalyticsResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# ==============================================================================
+# Explainable Delay Risk Scoring Schemas (Phase 24.2)
+# ==============================================================================
+
+class RiskContributingFactor(BaseModel):
+    """
+    Individual operational factor contributing to a shipment's delay risk score.
+    """
+    factor_id: str = Field(..., description="Machine-readable factor identifier (e.g. UNASSIGNED_DRIVER)")
+    factor_name: str = Field(..., description="Human-readable factor title")
+    impact_points: int = Field(..., description="Points contributed by this factor towards total risk score (0-100)")
+    severity: str = Field(..., description="Severity level: LOW, MEDIUM, or HIGH")
+    description: str = Field(..., description="Detailed explanation of how this factor impacts delay risk")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShipmentDelayRiskResponse(BaseModel):
+    """
+    Explainable delay risk evaluation for an individual shipment.
+    """
+    shipment_id: int = Field(..., description="Shipment primary key ID")
+    tracking_number: str = Field(..., description="Shipment unique tracking number")
+    status: str = Field(..., description="Current shipment lifecycle status")
+    risk_score: int = Field(..., ge=0, le=100, description="Deterministic risk score between 0 and 100")
+    risk_category: str = Field(..., description="Risk category: LOW, MEDIUM, HIGH, CRITICAL, COMPLETED, or CANCELLED")
+    summary_explanation: str = Field(..., description="Human-readable synthesis of primary delay risk drivers")
+    is_calibrated_probability: bool = Field(default=False, description="Explicit flag: this is a deterministic operational heuristic, NOT an empirical ML probability")
+    assessment_method: str = Field(default="DETERMINISTIC_HEURISTIC", description="Assessment methodology")
+    contributing_factors: List[RiskContributingFactor] = Field(default_factory=list, description="Itemized list of active risk contributors")
+    evaluated_at: str = Field(..., description="ISO 8601 evaluation timestamp")
+
+    # Operational metadata context
+    origin_warehouse_id: Optional[int] = Field(default=None, description="Origin warehouse ID")
+    origin_warehouse_name: Optional[str] = Field(default=None, description="Origin warehouse name")
+    origin_warehouse_location: Optional[str] = Field(default=None, description="Origin warehouse location")
+    warehouse_utilization_rate: Optional[float] = Field(default=None, description="Origin facility capacity utilization percentage")
+    destination_city: str = Field(..., description="Consignee destination city")
+    destination_state: str = Field(..., description="Consignee destination state")
+    is_interstate: bool = Field(default=False, description="Whether transit crosses state boundaries")
+    has_driver_assigned: bool = Field(default=False, description="Whether a driver is allocated")
+    assigned_driver_id: Optional[int] = Field(default=None, description="Allocated driver ID")
+    has_vehicle_assigned: bool = Field(default=False, description="Whether a transport vehicle is allocated")
+    assigned_vehicle_id: Optional[int] = Field(default=None, description="Allocated vehicle ID")
+    vehicle_capacity_kg: Optional[float] = Field(default=None, description="Vehicle maximum payload in kg")
+    cargo_weight_kg: Optional[float] = Field(default=None, description="Total shipment payload in kg")
+    weight_capacity_utilization: Optional[float] = Field(default=None, description="Ratio of cargo weight to vehicle carrying capacity")
+    has_route_assigned: bool = Field(default=False, description="Whether a route corridor is linked")
+    assigned_route_id: Optional[int] = Field(default=None, description="Linked route ID")
+    assigned_route_name: Optional[str] = Field(default=None, description="Linked route name")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FleetDelayRiskSummary(BaseModel):
+    """
+    Fleet-wide summary of evaluated shipment delay risks.
+    """
+    total_evaluated: int = Field(..., description="Total shipments evaluated in this batch")
+    average_risk_score: float = Field(..., description="Mean delay risk score across evaluated shipments")
+    critical_risk_count: int = Field(..., description="Count of shipments in CRITICAL tier (80-100)")
+    high_risk_count: int = Field(..., description="Count of shipments in HIGH tier (60-79)")
+    medium_risk_count: int = Field(..., description="Count of shipments in MEDIUM tier (30-59)")
+    low_risk_count: int = Field(..., description="Count of active shipments in LOW tier (0-29)")
+    completed_or_terminal_count: int = Field(..., description="Count of shipments in DELIVERED, CANCELLED, or RETURNED status")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DelayRiskAnalyticsResponse(BaseModel):
+    """
+    Response schema for GET /api/v1/analytics/delay-risk.
+    """
+    summary: FleetDelayRiskSummary = Field(..., description="Fleet-level risk distribution summary")
+    shipments: List[ShipmentDelayRiskResponse] = Field(default_factory=list, description="Itemized shipment risk evaluations")
+    total_records: int = Field(..., description="Total records matching query criteria")
+    limit: int = Field(..., description="Pagination page limit applied")
+    skip: int = Field(..., description="Pagination offset applied")
+
+    model_config = ConfigDict(from_attributes=True)
+
+

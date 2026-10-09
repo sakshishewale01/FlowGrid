@@ -76,6 +76,10 @@ from app.schemas.analytics import (
     WarehouseAnalyticsResponse,
     RouteSummaryItem,
     RouteAnalyticsResponse,
+    RiskContributingFactor,
+    ShipmentDelayRiskResponse,
+    FleetDelayRiskSummary,
+    DelayRiskAnalyticsResponse,
 )
 
 __all__ = [
@@ -136,5 +140,10 @@ __all__ = [
     "WarehouseAnalyticsResponse",
     "RouteSummaryItem",
     "RouteAnalyticsResponse",
+    "RiskContributingFactor",
+    "ShipmentDelayRiskResponse",
+    "FleetDelayRiskSummary",
+    "DelayRiskAnalyticsResponse",
 ]
+
 

@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.models.shipment import ShipmentStatus
 from app.models.user import User
 from app.schemas.analytics import (
     OverviewAnalyticsResponse,
@@ -24,8 +25,11 @@ from app.schemas.analytics import (
     RouteAnalyticsResponse,
     DriverAnalyticsResponse,
     VehicleAnalyticsResponse,
+    DelayRiskAnalyticsResponse,
+    ShipmentDelayRiskResponse,
 )
 from app.services.analytics_service import analytics_service
+
 
 router = APIRouter()
 
@@ -183,3 +187,74 @@ def get_vehicle_analytics(
     Returns fleet vehicle utilization, capacity, and status distribution.
     """
     return analytics_service.get_vehicles(db)
+
+
+@router.get(
+    "/delay-risk",
+    response_model=DelayRiskAnalyticsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get explainable shipment delay risk evaluations",
+    description="Calculates deterministic operational delay risk scores (0-100) and factor breakdowns across active shipments. Accessible to all authenticated users.",
+)
+def get_delay_risk_analytics(
+    shipment_id: Optional[int] = Query(
+        None,
+        description="Optional shipment ID to retrieve delay risk for a specific shipment",
+        examples=[1],
+    ),
+    status_filter: Optional[ShipmentStatus] = Query(
+        None,
+        alias="status",
+        description="Filter evaluated shipments by lifecycle state",
+    ),
+    risk_category: Optional[str] = Query(
+        None,
+        description="Filter by risk category tier (LOW, MEDIUM, HIGH, CRITICAL)",
+        examples=["CRITICAL"],
+    ),
+    limit: int = Query(
+        100,
+        ge=1,
+        le=500,
+        description="Maximum number of evaluated shipments to return",
+    ),
+    skip: int = Query(
+        0,
+        ge=0,
+        description="Number of shipment records to skip for pagination",
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DelayRiskAnalyticsResponse:
+    """
+    Returns explainable delay risk scores, contributing operational factors, and fleet-wide summary.
+    """
+    return analytics_service.get_delay_risk(
+        db,
+        shipment_id=shipment_id,
+        status_filter=status_filter,
+        risk_category=risk_category,
+        limit=limit,
+        skip=skip,
+    )
+
+
+@router.get(
+    "/delay-risk/{shipment_id}",
+    response_model=ShipmentDelayRiskResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get single shipment delay risk score",
+    description="Retrieves itemized operational delay risk score and factor explanations for a single shipment ID. Accessible to all authenticated users.",
+)
+def get_single_shipment_delay_risk(
+    shipment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ShipmentDelayRiskResponse:
+    """
+    Returns itemized delay risk assessment for a specific shipment.
+    """
+    return analytics_service.get_single_shipment_delay_risk(
+        db, shipment_id=shipment_id
+    )
+

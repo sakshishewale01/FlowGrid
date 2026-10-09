@@ -5,6 +5,7 @@ import { shipmentsApi } from '../api/shipments.js';
 import { trackingApi } from '../api/tracking.js';
 import { driversApi } from '../api/drivers.js';
 import { vehiclesApi } from '../api/vehicles.js';
+import { analyticsApi } from '../api/analytics.js';
 import { formatErrorMessage } from '../api/client.js';
 import StatusBadge from './StatusBadge';
 import ConfirmDialog from './ConfirmDialog';
@@ -48,7 +49,7 @@ export default function ShipmentDetailDrawer({
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'tracking' | 'history'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'tracking' | 'history' | 'risk'
   const [history, setHistory] = useState([]);
   const [events, setEvents] = useState([]);
   const [latestTracking, setLatestTracking] = useState(null);
@@ -56,6 +57,11 @@ export default function ShipmentDetailDrawer({
   const [timelineError, setTimelineError] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Explainable delay risk scoring state
+  const [delayRisk, setDelayRisk] = useState(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+  const [riskError, setRiskError] = useState(null);
 
   // Available drivers & vehicles for assignment
   const [drivers, setDrivers] = useState([]);
@@ -79,6 +85,20 @@ export default function ShipmentDetailDrawer({
   // Cancel Confirmation dialog state
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  const loadDelayRisk = useCallback(async (shipmentId) => {
+    if (!shipmentId) return;
+    setLoadingRisk(true);
+    setRiskError(null);
+    try {
+      const riskData = await analyticsApi.getShipmentDelayRisk(shipmentId);
+      setDelayRisk(riskData);
+    } catch (err) {
+      setRiskError(formatErrorMessage(err));
+    } finally {
+      setLoadingRisk(false);
+    }
+  }, []);
 
   const loadTimelineData = useCallback(async (shipmentId, showLoadingSpinner = true) => {
     if (showLoadingSpinner) {
@@ -126,6 +146,7 @@ export default function ShipmentDetailDrawer({
   useEffect(() => {
     if (shipment && isOpen) {
       loadTimelineData(shipment.id);
+      loadDelayRisk(shipment.id);
       setSelectedDriverId(shipment.assigned_driver_id ? String(shipment.assigned_driver_id) : '');
       setSelectedVehicleId(shipment.assigned_vehicle_id ? String(shipment.assigned_vehicle_id) : '');
       setStatusRemarks('');
@@ -135,7 +156,7 @@ export default function ShipmentDetailDrawer({
       setEventError(null);
       setShowAssignPanel(false);
     }
-  }, [shipment, isOpen, loadTimelineData]);
+  }, [shipment, isOpen, loadTimelineData, loadDelayRisk]);
 
   // Polling interval (15s) when live polling is active
   useEffect(() => {
@@ -152,6 +173,7 @@ export default function ShipmentDetailDrawer({
       if (!shipment?.id) return;
       if (event.event === 'STATUS_UPDATED') {
         loadTimelineData(shipment.id, false);
+        loadDelayRisk(shipment.id);
         if (onUpdated) {
           onUpdated({
             ...shipment,
@@ -177,6 +199,7 @@ export default function ShipmentDetailDrawer({
         );
       } else if (event.event === 'SHIPMENT_UPDATED') {
         loadTimelineData(shipment.id, false);
+        loadDelayRisk(shipment.id);
         if (onUpdated) {
           onUpdated({
             ...shipment,
@@ -188,7 +211,7 @@ export default function ShipmentDetailDrawer({
         }
       }
     },
-    [shipment, loadTimelineData, onUpdated, toast, notifyShipmentStatus]
+    [shipment, loadTimelineData, loadDelayRisk, onUpdated, toast, notifyShipmentStatus]
   );
 
 
@@ -210,7 +233,10 @@ export default function ShipmentDetailDrawer({
     if (!shipment?.id) return;
     setIsRefreshing(true);
     try {
-      await loadTimelineData(shipment.id, true);
+      await Promise.all([
+        loadTimelineData(shipment.id, true),
+        loadDelayRisk(shipment.id),
+      ]);
       toast.success('Live tracking telemetry refreshed');
     } catch {
       toast.error('Failed to refresh tracking data');
@@ -247,6 +273,7 @@ export default function ShipmentDetailDrawer({
       }
       if (onUpdated) onUpdated(updated);
       loadTimelineData(shipment.id);
+      loadDelayRisk(shipment.id);
       setStatusRemarks('');
 
     } catch (err) {
@@ -291,6 +318,7 @@ export default function ShipmentDetailDrawer({
       setShowAssignPanel(false);
       if (onUpdated) onUpdated(updated);
       loadTimelineData(shipment.id);
+      loadDelayRisk(shipment.id);
     } catch (err) {
       const msg = formatErrorMessage(err);
       setStatusError(msg);
@@ -312,6 +340,7 @@ export default function ShipmentDetailDrawer({
       setIsCancelConfirmOpen(false);
       if (onUpdated) onUpdated(updated);
       loadTimelineData(shipment.id);
+      loadDelayRisk(shipment.id);
     } catch (err) {
       toast.error(formatErrorMessage(err));
     } finally {
@@ -498,6 +527,52 @@ export default function ShipmentDetailDrawer({
             >
               Audit Trail ({history.length})
             </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'risk' ? 'active' : ''}`}
+              onClick={() => setActiveTab('risk')}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'risk' ? '2px solid #38BDF8' : '2px solid transparent',
+                color: activeTab === 'risk' ? '#38BDF8' : '#94A3B8',
+                padding: '10px 4px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>Delay Risk</span>
+              {delayRisk && (
+                <span style={{
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  backgroundColor:
+                    delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' :
+                    delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.2)' :
+                    delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.2)' :
+                    'rgba(16, 185, 129, 0.2)',
+                  color:
+                    delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                    delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                    delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                    '#10B981',
+                  border: `1px solid ${
+                    delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.4)' :
+                    delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.4)' :
+                    delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.4)' :
+                    'rgba(16, 185, 129, 0.4)'
+                  }`
+                }}>
+                  {delayRisk.risk_score}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* TAB 1: End-to-End Workflow & Details */}
@@ -544,6 +619,91 @@ export default function ShipmentDetailDrawer({
                   })}
                 </div>
               </div>
+
+              {/* Explainable Delay Risk Snapshot Card */}
+              {delayRisk && (
+                <div style={{
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.6) 100%)',
+                  border: `1px solid ${
+                    delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.4)' :
+                    delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.4)' :
+                    delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.4)' :
+                    'rgba(16, 185, 129, 0.4)'
+                  }`,
+                  borderRadius: '8px',
+                  marginBottom: '18px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '12px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(15, 23, 42, 0.9)',
+                      border: `2px solid ${
+                        delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                        delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                        delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                        '#10B981'
+                      }`,
+                      color:
+                        delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                        delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                        delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                        '#10B981'
+                    }}>
+                      <span style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1 }}>{delayRisk.risk_score}</span>
+                      <span style={{ fontSize: '0.55rem', color: '#94A3B8' }}>/100</span>
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>
+                          Delay Risk Score
+                        </span>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.70rem',
+                          fontWeight: 700,
+                          backgroundColor:
+                            delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' :
+                            delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.2)' :
+                            delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.2)' :
+                            'rgba(16, 185, 129, 0.2)',
+                          color:
+                            delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                            delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                            delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                            '#10B981',
+                          border: '1px solid currentColor'
+                        }}>
+                          {delayRisk.risk_category}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: '#CBD5E1', maxWidth: '420px', lineHeight: 1.35 }}>
+                        {delayRisk.explanation}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-action outline"
+                    style={{ padding: '6px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                    onClick={() => setActiveTab('risk')}
+                  >
+                    View Risk Breakdown →
+                  </button>
+                </div>
+              )}
 
               {/* Waybill Details Matrix */}
               <div className="manifest-grid-2" style={{ marginBottom: '18px' }}>
@@ -1137,6 +1297,267 @@ export default function ShipmentDetailDrawer({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 4: Explainable Delay Risk Assessment */}
+          {activeTab === 'risk' && (
+            <div className="drawer-content-body" style={{ padding: '0 24px 20px', maxHeight: '58vh', overflowY: 'auto' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#F8FAFC' }}>
+                    Explainable Delay Risk Assessment
+                  </h4>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#94A3B8' }}>
+                    Deterministic rule-based operational scoring (0–100 scale). Not a calibrated probability.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="fg-export-btn"
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  onClick={() => loadDelayRisk(shipment.id)}
+                  disabled={loadingRisk}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    className={loadingRisk ? 'rotating-spin' : ''}
+                  >
+                    <polyline points="23 4 23 10 17 10" />
+                    <polyline points="1 20 1 14 7 14" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  <span>{loadingRisk ? 'Evaluating...' : 'Recalculate'}</span>
+                </button>
+              </div>
+
+              {loadingRisk ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: '#94A3B8' }}>
+                  Evaluating dispatch operational constraints and bottlenecks...
+                </div>
+              ) : riskError ? (
+                <div className="auth-alert error" style={{ marginBottom: '16px' }}>
+                  <div className="auth-alert-content">
+                    <span className="auth-alert-title">Unable to evaluate delay risk</span>
+                    <span className="auth-alert-text">{riskError}</span>
+                  </div>
+                </div>
+              ) : delayRisk ? (
+                <>
+                  {/* Primary Score Hero Card */}
+                  <div style={{
+                    padding: '20px',
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: `1px solid ${
+                      delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.4)' :
+                      delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.4)' :
+                      delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.4)' :
+                      'rgba(16, 185, 129, 0.4)'
+                    }`,
+                    borderRadius: '10px',
+                    marginBottom: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '20px',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
+                  }}>
+                    <div style={{
+                      minWidth: '84px',
+                      height: '84px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(10, 15, 30, 0.9)',
+                      border: `3px solid ${
+                        delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                        delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                        delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                        '#10B981'
+                      }`,
+                      boxShadow: `0 0 16px ${
+                        delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.3)' :
+                        delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.3)' :
+                        delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.3)' :
+                        'rgba(16, 185, 129, 0.3)'
+                      }`,
+                      color:
+                        delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                        delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                        delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                        '#10B981'
+                    }}>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1 }}>{delayRisk.risk_score}</span>
+                      <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 600 }}>OUT OF 100</span>
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                        <span style={{
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          backgroundColor:
+                            delayRisk.risk_category === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' :
+                            delayRisk.risk_category === 'HIGH' ? 'rgba(249, 115, 22, 0.2)' :
+                            delayRisk.risk_category === 'MEDIUM' ? 'rgba(234, 179, 8, 0.2)' :
+                            'rgba(16, 185, 129, 0.2)',
+                          color:
+                            delayRisk.risk_category === 'CRITICAL' ? '#EF4444' :
+                            delayRisk.risk_category === 'HIGH' ? '#F97316' :
+                            delayRisk.risk_category === 'MEDIUM' ? '#EAB308' :
+                            '#10B981',
+                          border: '1px solid currentColor'
+                        }}>
+                          {delayRisk.risk_category} RISK
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                          Evaluated {delayRisk.evaluated_at ? new Date(delayRisk.evaluated_at).toLocaleTimeString() : 'now'}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#E2E8F0', lineHeight: 1.45 }}>
+                        {delayRisk.explanation}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contributing Factors Section */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                        Contributing Operational Factors ({delayRisk.contributing_factors.length})
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                        Cumulative penalty points
+                      </span>
+                    </div>
+
+                    {delayRisk.contributing_factors.length === 0 ? (
+                      <div style={{
+                        padding: '16px',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        borderRadius: '8px',
+                        color: '#A7F3D0',
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>✓</span>
+                        <span>No negative operational risk factors detected. Dispatch readiness is optimal.</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {delayRisk.contributing_factors.map((factor, idx) => (
+                          <div
+                            key={factor.factor_code || idx}
+                            style={{
+                              padding: '12px 14px',
+                              background: 'rgba(15, 23, 42, 0.6)',
+                              border: '1px solid rgba(51, 65, 85, 0.6)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  background: factor.severity === 'HIGH' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+                                  color: factor.severity === 'HIGH' ? '#EF4444' : '#EAB308',
+                                  border: '1px solid currentColor'
+                                }}>
+                                  {factor.severity}
+                                </span>
+                                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F1F5F9' }}>
+                                  {factor.factor_name}
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, fontSize: '0.76rem', color: '#94A3B8' }}>
+                                {factor.explanation}
+                              </p>
+                            </div>
+                            <div style={{
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#F87171',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              +{factor.impact_points} pts
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Operational Checklist Details Matrix */}
+                  <div style={{
+                    padding: '14px',
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    border: '1px solid rgba(51, 65, 85, 0.6)',
+                    borderRadius: '8px'
+                  }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, display: 'block', marginBottom: '10px' }}>
+                      Diagnostic Check of Operational Factors
+                    </span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '0.78rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px' }}>
+                        <span style={{ color: '#94A3B8' }}>Driver Assignment:</span>
+                        <span style={{ fontWeight: 600, color: shipment.assigned_driver_id ? '#10B981' : '#F87171' }}>
+                          {shipment.assigned_driver_id ? '✓ Assigned' : '✗ Missing (+20 pts)'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px' }}>
+                        <span style={{ color: '#94A3B8' }}>Carrier Vehicle:</span>
+                        <span style={{ fontWeight: 600, color: shipment.assigned_vehicle_id ? '#10B981' : '#F87171' }}>
+                          {shipment.assigned_vehicle_id ? '✓ Assigned' : '✗ Missing (+15 pts)'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px' }}>
+                        <span style={{ color: '#94A3B8' }}>Route Plan:</span>
+                        <span style={{ fontWeight: 600, color: shipment.route_id ? '#10B981' : '#F87171' }}>
+                          {shipment.route_id ? '✓ Assigned' : '✗ Missing (+10 pts)'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '4px' }}>
+                        <span style={{ color: '#94A3B8' }}>Transit Boundary:</span>
+                        <span style={{ fontWeight: 600, color: '#CBD5E1' }}>
+                          {shipment.origin_warehouse?.state && shipment.destination_state &&
+                           shipment.origin_warehouse.state.trim().toLowerCase() !== shipment.destination_state.trim().toLowerCase()
+                            ? 'Interstate Corridor (+15 pts)'
+                            : 'Intra-State / Local'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           )}
 

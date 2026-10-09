@@ -74,6 +74,28 @@ export const analyticsApi = {
   async getVehicleAnalytics() {
     return apiClient.get('/api/v1/analytics/vehicles');
   },
+
+  /**
+   * Retrieves explainable shipment delay risk evaluations and fleet risk summary.
+   */
+  async getDelayRisk({ shipment_id, status, risk_category, limit, skip } = {}) {
+    const params = new URLSearchParams();
+    if (shipment_id !== undefined && shipment_id !== null) params.append('shipment_id', shipment_id);
+    if (status) params.append('status', status);
+    if (risk_category) params.append('risk_category', risk_category);
+    if (limit) params.append('limit', limit);
+    if (skip) params.append('skip', skip);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get(`/api/v1/analytics/delay-risk${qs}`);
+  },
+
+  /**
+   * Retrieves itemized delay risk assessment for a specific shipment by ID.
+   */
+  async getShipmentDelayRisk(shipmentId) {
+    return apiClient.get(`/api/v1/analytics/delay-risk/${shipmentId}`);
+  },
 };
 
 export default analyticsApi;
+

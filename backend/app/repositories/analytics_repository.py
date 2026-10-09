@@ -892,5 +892,136 @@ class AnalyticsRepository:
             "vehicles_summary": vehicles_summary,
         }
 
+    @staticmethod
+    def get_delay_risk_evaluations(
+        db: Session,
+        shipment_id: Optional[int] = None,
+        status: Optional[ShipmentStatus] = None,
+        risk_category: Optional[str] = None,
+        limit: int = 100,
+        skip: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Evaluates operational delay risk across active shipments or a specific shipment.
+        """
+        from app.services.delay_risk_service import delay_risk_service
+
+        # 1. Fetch warehouse stock map for facility congestion evaluation
+        wh_stock_stmt = (
+            select(
+                Inventory.warehouse_id,
+                func.coalesce(func.sum(Inventory.quantity), 0).label("total_stock"),
+            )
+            .group_by(Inventory.warehouse_id)
+        )
+        wh_stock_map = {
+            int(row.warehouse_id): int(row.total_stock)
+            for row in db.execute(wh_stock_stmt).all()
+            if row.warehouse_id is not None
+        }
+
+        # 2. Build shipment query with eager joins
+        query = (
+            db.query(Shipment)
+            .options(
+                joinedload(Shipment.origin_warehouse),
+                joinedload(Shipment.assigned_driver),
+                joinedload(Shipment.assigned_vehicle),
+                joinedload(Shipment.routes),
+            )
+            .filter(Shipment.is_active.is_(True))
+        )
+
+        if shipment_id is not None:
+            query = query.filter(Shipment.id == shipment_id)
+
+        if status is not None:
+            query = query.filter(Shipment.status == status)
+
+        query = query.order_by(Shipment.id.asc())
+
+        if shipment_id is not None:
+            target_shipment = query.first()
+            if not target_shipment:
+                return None
+            single_eval = delay_risk_service.evaluate_shipment(
+                target_shipment, warehouse_stock_map=wh_stock_map
+            )
+            summary, _ = delay_risk_service.evaluate_batch(
+                [target_shipment], warehouse_stock_map=wh_stock_map
+            )
+            return {
+                "summary": summary.model_dump(),
+                "shipments": [single_eval.model_dump()],
+                "total_records": 1,
+                "limit": limit,
+                "skip": skip,
+            }
+
+        all_matching = query.all()
+        summary, all_evaluations = delay_risk_service.evaluate_batch(
+            all_matching, warehouse_stock_map=wh_stock_map
+        )
+
+        if risk_category:
+            norm_cat = risk_category.strip().upper()
+            all_evaluations = [
+                e for e in all_evaluations if e.risk_category == norm_cat
+            ]
+
+        total_records = len(all_evaluations)
+        paginated_evals = all_evaluations[skip : skip + limit]
+
+        return {
+            "summary": summary.model_dump(),
+            "shipments": [e.model_dump() for e in paginated_evals],
+            "total_records": total_records,
+            "limit": limit,
+            "skip": skip,
+        }
+
+    @staticmethod
+    def get_single_shipment_delay_risk(
+        db: Session,
+        shipment_id: int,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Evaluates delay risk for a single shipment by primary key ID.
+        """
+        from app.services.delay_risk_service import delay_risk_service
+
+        wh_stock_stmt = (
+            select(
+                Inventory.warehouse_id,
+                func.coalesce(func.sum(Inventory.quantity), 0).label("total_stock"),
+            )
+            .group_by(Inventory.warehouse_id)
+        )
+        wh_stock_map = {
+            int(row.warehouse_id): int(row.total_stock)
+            for row in db.execute(wh_stock_stmt).all()
+            if row.warehouse_id is not None
+        }
+
+        shipment = (
+            db.query(Shipment)
+            .options(
+                joinedload(Shipment.origin_warehouse),
+                joinedload(Shipment.assigned_driver),
+                joinedload(Shipment.assigned_vehicle),
+                joinedload(Shipment.routes),
+            )
+            .filter(Shipment.id == shipment_id)
+            .first()
+        )
+        if not shipment:
+            return None
+
+        eval_res = delay_risk_service.evaluate_shipment(
+            shipment, warehouse_stock_map=wh_stock_map
+        )
+        return eval_res.model_dump()
+
 
 analytics_repository = AnalyticsRepository()
+

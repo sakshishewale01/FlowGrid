@@ -10,6 +10,7 @@ from typing import Optional, Tuple
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.shipment import ShipmentStatus
 from app.repositories.analytics_repository import analytics_repository
 from app.schemas.analytics import (
     OverviewAnalyticsResponse,
@@ -19,7 +20,10 @@ from app.schemas.analytics import (
     RouteAnalyticsResponse,
     DriverAnalyticsResponse,
     VehicleAnalyticsResponse,
+    DelayRiskAnalyticsResponse,
+    ShipmentDelayRiskResponse,
 )
+
 
 
 class AnalyticsService:
@@ -138,5 +142,59 @@ class AnalyticsService:
         raw_data = self.repository.get_vehicle_analytics(db)
         return VehicleAnalyticsResponse(**raw_data)
 
+    def get_delay_risk(
+        self,
+        db: Session,
+        shipment_id: Optional[int] = None,
+        status_filter: Optional[ShipmentStatus] = None,
+        risk_category: Optional[str] = None,
+        limit: int = 100,
+        skip: int = 0,
+    ) -> DelayRiskAnalyticsResponse:
+        """
+        Calculates deterministic, explainable delay risk scores across active shipments.
+        """
+        if risk_category:
+            valid_categories = {"LOW", "MEDIUM", "HIGH", "CRITICAL", "COMPLETED", "CANCELLED", "RETURNED"}
+            if risk_category.strip().upper() not in valid_categories:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid risk_category '{risk_category}'. Allowed values: {', '.join(sorted(valid_categories))}",
+                )
+
+        raw_data = self.repository.get_delay_risk_evaluations(
+            db,
+            shipment_id=shipment_id,
+            status=status_filter,
+            risk_category=risk_category,
+            limit=limit,
+            skip=skip,
+        )
+
+        if raw_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Shipment with ID {shipment_id} was not found",
+            )
+
+        return DelayRiskAnalyticsResponse(**raw_data)
+
+    def get_single_shipment_delay_risk(
+        self,
+        db: Session,
+        shipment_id: int,
+    ) -> ShipmentDelayRiskResponse:
+        """
+        Calculates delay risk for a single shipment or raises HTTP 404 if not found.
+        """
+        raw_data = self.repository.get_single_shipment_delay_risk(db, shipment_id)
+        if raw_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Shipment with ID {shipment_id} was not found",
+            )
+        return ShipmentDelayRiskResponse(**raw_data)
+
 
 analytics_service = AnalyticsService()
+

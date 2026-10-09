@@ -96,17 +96,48 @@ All analytics endpoints reside under `/api/v1/analytics` and are accessible to a
 | `GET` | `/api/v1/analytics/routes` | `start_date`, `end_date` | `RouteAnalyticsResponse` | Corridors, completion status, and shipment density. |
 | `GET` | `/api/v1/analytics/drivers` | None | `DriverAnalyticsResponse` | Driver workforce status distribution and utilization rate. |
 | `GET` | `/api/v1/analytics/vehicles` | None | `VehicleAnalyticsResponse` | Vehicle status distribution, carrying capacity, and utilization. |
+| `GET` | `/api/v1/analytics/delay-risk` | `shipment_id`, `status`, `risk_category`, `skip`, `limit` | `DelayRiskAnalyticsResponse` | Fleetwide explainable delay risk evaluations and fleet risk summary. |
+| `GET` | `/api/v1/analytics/delay-risk/{shipment_id}` | Path: `shipment_id` | `ShipmentDelayRiskResponse` | Single shipment explainable delay risk score, category, and factor breakdown. |
 
 ---
 
-## 5. Frontend Dashboard Integration
+## 5. Explainable Delay Risk Scoring (Phase 24.2)
+
+FlowGrid Phase 24.2 introduces a deterministic, explainable operational risk engine that scores shipment delay risk on a scale of **0–100**.
+
+### 5.1 Scoring Rubric & Weights
+
+Points accumulate additively based on real-time operational bottlenecks, clamped to $[0, 100]$:
+
+| Operational Dimension | Factor Code | Condition | Points | Severity |
+| :--- | :--- | :--- | :--- | :--- |
+| **Driver Assignment** | `UNASSIGNED_DRIVER` | `assigned_driver_id` is null | +20 | HIGH |
+| **Vehicle Assignment** | `UNASSIGNED_VEHICLE` | `assigned_vehicle_id` is null | +15 | MEDIUM |
+| **Route Assignment** | `UNASSIGNED_ROUTE` | `route_id` is null | +10 | MEDIUM |
+| **Capacity Strain** | `CRITICAL_CAPACITY_STRAIN` | Cargo weight / Vehicle capacity > 90% | +20 | HIGH |
+| **Capacity Strain** | `HIGH_CAPACITY_UTILIZATION` | Cargo weight / Vehicle capacity 80%–90% | +10 | MEDIUM |
+| **Transit Corridor** | `INTERSTATE_TRANSIT` | Origin State $\neq$ Destination State | +15 | MEDIUM |
+| **Origin Congestion** | `CRITICAL_WAREHOUSE_CONGESTION` | Warehouse inventory / capacity > 85% | +20 | HIGH |
+| **Origin Congestion** | `MODERATE_WAREHOUSE_CONGESTION` | Warehouse inventory / capacity 75%–85% | +10 | MEDIUM |
+| **Delivery Exception** | `PRIOR_DELIVERY_FAILURE` | Shipment status is `FAILED` | +15 | HIGH |
+
+- **Terminal States**: Delivered shipments receive score `0` (`COMPLETED`), cancelled shipments receive score `0` (`CANCELLED`), and returned shipments receive score `0` (`RETURNED`).
+- **Risk Tiers**:
+  - `0 – 29`: `LOW`
+  - `30 – 59`: `MEDIUM`
+  - `60 – 79`: `HIGH`
+  - `80 – 100`: `CRITICAL`
+- **Missing Data Safety**: If weight, capacity, or warehouse metrics are missing/null, calculations fail safely to 0 points without division-by-zero or hallucinated figures.
+- **Explainability**: Every response returns `contributing_factors` (with code, severity, impact points, and human-readable context) and a synthesis `explanation`. Explicitly flags `is_calibrated_probability = False`.
+
+---
+
+## 6. Frontend Dashboard & Drawer Integration
 
 1. **API Client (`frontend/src/api/analytics.js`)**:
-   - Added `getDriverAnalytics()` and `getVehicleAnalytics()`.
-2. **Data Hook (`frontend/src/hooks/useDashboardData.js`)**:
-   - Executes parallel, resilient queries via `Promise.allSettled`.
-   - Exposes `driverAnalytics`, `vehicleAnalytics`, and computed delivery performance indicators.
-   - Updates executive KPI cards with on-time delivery rates, average transit duration, and delay duration indicators.
-3. **Theme & Design Consistency**:
-   - Preserves Deep Tech Blue aesthetic and responsive CSS grid (`.metrics-grid`).
-   - Skeletons displayed during telemetry synchronization.
+   - Added `getDelayRisk(params)` and `getShipmentDelayRisk(shipmentId)`.
+2. **Waybill Drawer (`frontend/src/components/ShipmentDetailDrawer.jsx`)**:
+   - **Overview Tab (TAB 1)**: Embedded Delay Risk Snapshot Card showing score circle, category badge, explanation, and deep link button.
+   - **Dedicated Delay Risk Tab (TAB 4)**: Full explainable breakdown with score gauge, calibration warning, contributing factor cards (+pts), and diagnostic checklist of operational parameters.
+   - **Real-Time Reactivity**: Automatically refreshes risk evaluation upon driver/vehicle assignment, status advancement, WebSocket events, and manual telemetry refresh.
+
