@@ -152,7 +152,7 @@ sequenceDiagram
     autonumber
     actor Mgr as Logistics Manager
     participant UI as React Operations UI
-    participant API as FastAPI Backend (/shipments)
+    participant API as FastAPI Backend
     participant DB as PostgreSQL Database
     participant WS as WebSocket Hub
 
@@ -351,28 +351,28 @@ An exhaustive audit of the live development database and pipeline exports (`docs
 
 ```mermaid
 graph TD
-    subgraph "Phase 1: Deterministic Intelligence (Current - Verified)"
-        A[Operational Features] --> B[Deterministic Heuristic Scoring]
-        B --> C[0-100 Delay Risk Index]
-        C --> D[Factor Explanations in UI]
+    subgraph "Phase 1: Deterministic Intelligence"
+        A["Operational Features"] --> B["Deterministic Heuristic Scoring"]
+        B --> C["0-100 Delay Risk Index"]
+        C --> D["Factor Explanations in UI"]
     end
 
-    subgraph "Phase 2: Data Accumulation & Enrichment (Next Priority)"
-        E[Add estimated_delivery_at to DB] --> F[Log Authentic Milestones in Operations]
-        F --> G[Accumulate >= 500 Completed Historical Dispatches]
-        G --> H[Run Automated Quality Checker]
+    subgraph "Phase 2: Data Accumulation and Enrichment"
+        E["Add estimated_delivery_at to DB"] --> F["Log Authentic Milestones in Operations"]
+        F --> G["Accumulate 500+ Completed Dispatches"]
+        G --> H["Run Automated Quality Checker"]
     end
 
-    subgraph "Phase 3: Grounded AI Assistant (Parallel Feasibility)"
-        I[Read-Only LLM Assistant] --> J[RBAC-Guarded Tool Calling]
-        J --> K[Query FlowGrid REST Endpoints]
-        K --> L[Answer Dispatch Inquiries with Zero Hallucination]
+    subgraph "Phase 3: Grounded AI Assistant"
+        I["Read-Only LLM Assistant"] --> J["RBAC-Guarded Tool Calling"]
+        J --> K["Query FlowGrid REST Endpoints"]
+        K --> L["Answer Inquiries Grounded in Data"]
     end
 
-    subgraph "Phase 4: Predictive Machine Learning (Future)"
-        H --> M[Baseline Heuristic Benchmarking]
-        M --> N[Train Scikit-Learn Regression for ETA]
-        M --> O[Train Gradient Boosting for Delay Classification]
+    subgraph "Phase 4: Predictive Machine Learning"
+        H --> M["Baseline Heuristic Benchmarking"]
+        M --> N["Train Regression Model for ETA"]
+        M --> O["Train Classification for Delay"]
     end
 ```
 

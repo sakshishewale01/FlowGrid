@@ -101,51 +101,57 @@ All technologies and libraries have been verified directly from `backend/require
 ```mermaid
 graph TB
     subgraph "Client Layer (Browser)"
-        UI[React 19 SPA (Vite)]
-        LeafletMap[Leaflet OpenStreetMap]
-        WSClient[WebSocket Telemetry Client]
+        UI["React 19 SPA (Vite)"]
+        LeafletMap["Leaflet OpenStreetMap"]
+        WSClient["WebSocket Telemetry Client"]
     end
 
     subgraph "FastAPI Backend (Port 8000)"
-        MW[Security & Timing Middleware]
-        CORS[CORS Handler]
+        MW["Security & Timing Middleware"]
+        CORS["CORS Handler"]
         AuthRouter["/api/v1/auth (Argon2 / JWT)"]
         ShipmentRouter["/api/v1/shipments"]
         TrackingRouter["/api/v1/shipments/{id}/tracking"]
         WSEndpoint["/ws/tracking/{shipment_id}"]
         AnalyticsRouter["/api/v1/analytics"]
         PipelineRouter["/api/v1/pipeline"]
-        FleetRouters["/warehouses, /products, /inventory, /drivers, /vehicles, /routes"]
+        FleetRouters["Core Logistics Routers"]
 
         subgraph "Application Core Services"
-            ShipmentSvc[ShipmentService: State Machine]
-            RiskSvc[DelayRiskService: Deterministic 0-100]
-            TrackingSvc[TrackingService: Milestones]
-            ConnMgr[ConnectionManager: WebSocket Hub]
-            AnalyticsSvc[AnalyticsService: KPIs]
-            PipelineSvc[DatasetGenerator & QualityChecker]
+            ShipmentSvc["ShipmentService: State Machine"]
+            RiskSvc["DelayRiskService: Deterministic 0-100"]
+            TrackingSvc["TrackingService: Milestones"]
+            ConnMgr["ConnectionManager: WebSocket Hub"]
+            AnalyticsSvc["AnalyticsService: KPIs"]
+            PipelineSvc["DatasetGenerator & QualityChecker"]
         end
 
         subgraph "Repository Data Access Layer"
-            ShipmentRepo[ShipmentRepository]
-            TrackingRepo[TrackingRepository]
-            AnalyticsRepo[AnalyticsRepository]
-            CoreRepos[Warehouse, Product, Inventory, Driver, Vehicle Repositories]
+            ShipmentRepo["ShipmentRepository"]
+            TrackingRepo["TrackingRepository"]
+            AnalyticsRepo["AnalyticsRepository"]
+            CoreRepos["Core Registries Repositories"]
         end
     end
 
     subgraph "Persistence Layer"
-        PG[(PostgreSQL 15+ / SQLite in tests)]
+        PG[("PostgreSQL 15+ / SQLite in tests")]
     end
 
     UI -->|HTTP Bearer JWT| MW
     WSClient -->|WS Protocol + JWT| WSEndpoint
     MW --> CORS
-    CORS --> AuthRouter & ShipmentRouter & TrackingRouter & AnalyticsRouter & PipelineRouter & FleetRouters
+    CORS --> AuthRouter
+    CORS --> ShipmentRouter
+    CORS --> TrackingRouter
+    CORS --> AnalyticsRouter
+    CORS --> PipelineRouter
+    CORS --> FleetRouters
     WSEndpoint --> ConnMgr
     ShipmentRouter --> ShipmentSvc
     TrackingRouter --> TrackingSvc
-    AnalyticsRouter --> AnalyticsSvc & RiskSvc
+    AnalyticsRouter --> AnalyticsSvc
+    AnalyticsRouter --> RiskSvc
     PipelineRouter --> PipelineSvc
     FleetRouters --> CoreRepos
 
@@ -154,10 +160,14 @@ graph TB
     TrackingSvc --> TrackingRepo
     TrackingSvc --> ConnMgr
     AnalyticsSvc --> AnalyticsRepo
-    RiskSvc --> ShipmentRepo & CoreRepos
+    RiskSvc --> ShipmentRepo
+    RiskSvc --> CoreRepos
     PipelineSvc --> CoreRepos
 
-    ShipmentRepo & TrackingRepo & AnalyticsRepo & CoreRepos --> PG
+    ShipmentRepo --> PG
+    TrackingRepo --> PG
+    AnalyticsRepo --> PG
+    CoreRepos --> PG
     UI -.->|Render Coordinates| LeafletMap
 ```
 
@@ -547,10 +557,10 @@ sequenceDiagram
     autonumber
     actor Mgr as Logistics Manager
     participant App as React Frontend
-    participant Ep as Shipment Endpoint (/shipments/{id}/status)
+    participant Ep as Shipment Endpoint
     participant Svc as ShipmentService
     participant Repo as ShipmentRepository
-    participant Hub as ConnectionManager (WebSocket)
+    participant Hub as WebSocket ConnectionManager
     participant Client as Connected WebSocket Clients
 
     Mgr->>App: Click 'Advance to PICKED_UP'
