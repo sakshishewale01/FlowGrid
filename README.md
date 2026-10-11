@@ -224,6 +224,21 @@ FlowGrid/
 
 ---
 
+## 📚 Project Documentation & Knowledge Base
+
+Comprehensive, authoritative documentation is maintained in the [`docs/`](./docs) directory:
+
+| Document | Purpose | Key Content |
+| :--- | :--- | :--- |
+| [**PRD.md**](./docs/PRD.md) | Product Requirements Document | Real-world problem, user personas, verified RBAC matrix, workflows, functional requirements, and success metrics. |
+| [**ARCHITECTURE.md**](./docs/ARCHITECTURE.md) | System Architecture Specification | Decoupled monolith architecture, verified tech stack, Mermaid diagrams, request lifecycle, and database ERD. |
+| [**RULES.md**](./docs/RULES.md) | Business Rules & Invariants | Enforced lifecycle state transitions, vehicle capacity constraints, database integrity, and AI Coding Agent rules. |
+| [**DESIGN.md**](./docs/DESIGN.md) | UI/UX Design System | "Deep Tech Blue" design tokens, layout hierarchy, reusable components, and responsive operations UI guidelines. |
+| [**TASKS.md**](./docs/TASKS.md) | Implementation Roadmap & Progress | Verified task baseline, phased milestones (Phases A–F), known technical debt, and prioritized next tasks. |
+| [**MEMORY.md**](./docs/MEMORY.md) | Technical Memory & Context | Compact cheat sheet for developers and AI agents, module map, verified commands, and quick-start context. |
+
+---
+
 ## 🚀 Quickstart & Local Development
 
 ### 1. Prerequisites
