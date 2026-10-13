@@ -1,7 +1,6 @@
 import React from 'react';
 
-export default function RouteMapPanel({ corridors = [] }) {
-
+export default function RouteMapPanel({ corridors = [], onNavigate = null }) {
   return (
     <div className="map-panel" id="route-map-panel">
       <div className="panel-title-bar">
@@ -16,14 +15,29 @@ export default function RouteMapPanel({ corridors = [] }) {
       </div>
 
       <div className="map-content-grid">
-        {/* AI Route Optimization Callout - Uses Cyan #22D3EE sparingly */}
+        {/* Route Optimization Callout - Grounded in actual corridor telematics */}
         <div className="ai-route-optimization-box" id="ai-optimization-banner">
           <div className="ai-opt-left">
             <span className="ai-sparkle-icon">✦</span>
-            <span className="ai-opt-badge">AI OPTIMIZATION</span>
-            <span>Dynamic Route Dispatcher active: <strong>+18.2% transit efficiency gain</strong></span>
+            <span className="ai-opt-badge">CORRIDOR TELEMETRICS</span>
+            <span>
+              Live Route Network:{' '}
+              <strong>{corridors.length > 0 ? `${corridors.length} Monitored Corridor(s)` : 'Awaiting Route Registry'}</strong>
+            </span>
           </div>
-          <span className="ai-opt-stat">Active Predictive Model</span>
+          {onNavigate ? (
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '3px 10px', fontSize: '0.72rem', borderColor: 'var(--ai-cyan)', color: 'var(--ai-cyan)' }}
+              onClick={() => onNavigate('routes')}
+              title="Navigate to Transit Corridors Page"
+            >
+              Manage Routes →
+            </button>
+          ) : (
+            <span className="ai-opt-stat">Active Freight Corridors</span>
+          )}
         </div>
 
         {/* Vector Schematic Map Canvas */}
@@ -58,7 +72,7 @@ export default function RouteMapPanel({ corridors = [] }) {
               <circle r="16" fill="#3B82F6" fillOpacity="0.2" />
               <circle r="8" fill="#3B82F6" stroke="#0F172A" strokeWidth="2" />
               <text x="14" y="4" fontSize="12" fontWeight="600" fill="#E2E8F0">ORD (Chicago Hub)</text>
-              <text x="14" y="18" fontSize="10" fill="#94A3B8">Central • 18 active</text>
+              <text x="14" y="18" fontSize="10" fill="#94A3B8">Central • Active Corridors</text>
             </g>
 
             {/* Hub Node: Newark */}
@@ -66,7 +80,7 @@ export default function RouteMapPanel({ corridors = [] }) {
               <circle r="18" fill="#3B82F6" fillOpacity="0.2" />
               <circle r="9" fill="#3B82F6" stroke="#0F172A" strokeWidth="2" />
               <text x="-120" y="4" fontSize="12" fontWeight="600" fill="#E2E8F0">EWR (Newark Gateway)</text>
-              <text x="-120" y="18" fontSize="10" fill="#94A3B8">East Coast • 24 active</text>
+              <text x="-120" y="18" fontSize="10" fill="#94A3B8">East Coast • Freight Staging</text>
             </g>
 
             {/* Hub Node: Dallas */}
@@ -74,20 +88,20 @@ export default function RouteMapPanel({ corridors = [] }) {
               <circle r="14" fill="#3B82F6" fillOpacity="0.2" />
               <circle r="7" fill="#3B82F6" stroke="#0F172A" strokeWidth="2" />
               <text x="12" y="4" fontSize="12" fontWeight="600" fill="#E2E8F0">DFW (Dallas Hub)</text>
-              <text x="12" y="18" fontSize="10" fill="#94A3B8">Southwest • 12 active</text>
+              <text x="12" y="18" fontSize="10" fill="#94A3B8">Southwest Logistics</text>
             </g>
 
             {/* Destination: Boston */}
             <g transform="translate(640, 60)">
               <circle r="6" fill="#F59E0B" stroke="#0F172A" strokeWidth="1.5" />
               <text x="-90" y="-8" fontSize="11" fontWeight="600" fill="#F59E0B">BOS (Boston)</text>
-              <text x="-90" y="6" fontSize="9" fill="#94A3B8">Weather Hold</text>
+              <text x="-90" y="6" fontSize="9" fill="#94A3B8">Northeast Terminal</text>
             </g>
 
             {/* In-Transit Unit Marker on I-80 */}
             <g transform="translate(390, 110)">
               <rect x="-30" y="-12" width="60" height="24" rx="4" fill="#1E293B" stroke="#3B82F6" strokeWidth="1" />
-              <text x="0" y="4" fontSize="10" fill="#38BDF8" fontWeight="600" textAnchor="middle">Unit #402</text>
+              <text x="0" y="4" fontSize="10" fill="#38BDF8" fontWeight="600" textAnchor="middle">Unit Dispatch</text>
             </g>
           </svg>
         </div>
@@ -101,7 +115,16 @@ export default function RouteMapPanel({ corridors = [] }) {
             </div>
           ) : (
             corridors.map((corridor) => (
-              <div key={corridor.id} className="corridor-card">
+              <div
+                key={corridor.id}
+                className="corridor-card"
+                onClick={() => onNavigate && onNavigate('routes')}
+                role={onNavigate ? 'button' : undefined}
+                tabIndex={onNavigate ? 0 : undefined}
+                onKeyDown={(e) => onNavigate && (e.key === 'Enter' || e.key === ' ') && onNavigate('routes')}
+                style={onNavigate ? { cursor: 'pointer' } : undefined}
+                title={onNavigate ? `View ${corridor.name} route details` : undefined}
+              >
                 <div className="corridor-header">
                   <span className="corridor-name">{corridor.name}</span>
                   <span className={`condition-pill ${corridor.statusType}`}>
@@ -120,4 +143,3 @@ export default function RouteMapPanel({ corridors = [] }) {
     </div>
   );
 }
-

@@ -10,10 +10,12 @@ export default function TopNavbar({
   backendHealth, 
   isCheckingHealth, 
   onCheckHealth,
-  pageTitle = "Logistics Overview"
+  pageTitle = "Logistics Overview",
+  onSearch = null,
 }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
+  const [searchQuery, setSearchQuery] = useState('');
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const profileMenuRef = useRef(null);
@@ -80,9 +82,25 @@ export default function TopNavbar({
             type="text"
             className="search-input"
             id="global-search-input"
-            placeholder="Search tracking #, SKU, warehouse, driver..."
+            placeholder="Search tracking #, SKU, warehouse, driver... (Enter)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim() && onSearch) {
+                onSearch(searchQuery.trim());
+              }
+            }}
+            aria-label="Global search across shipments, facilities, and drivers"
           />
-          <span className="search-shortcut">⌘K</span>
+          <button
+            type="button"
+            className="search-shortcut"
+            onClick={() => searchQuery.trim() && onSearch && onSearch(searchQuery.trim())}
+            style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'inherit' }}
+            title="Execute search"
+          >
+            ⏎
+          </button>
         </div>
       </div>
 

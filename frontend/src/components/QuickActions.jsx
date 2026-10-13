@@ -20,17 +20,17 @@ export default function QuickActions({ onAction }) {
             if (canManageShipments) {
               onAction('Create New Shipment');
             } else {
-              onAction('Action Denied: Creating shipments requires MANAGER or ADMIN role');
+              onAction(`Action Restricted: Creating shipments requires MANAGER or ADMIN privileges (Current role: ${user?.role || 'VIEWER'})`);
             }
           }}
-          title={canManageShipments ? 'Create new freight shipment manifest' : `Restricted for role: ${user?.role || 'VIEWER'} (Requires MANAGER or ADMIN)`}
+          title={canManageShipments ? 'Create new freight shipment manifest' : `Restricted for role: ${user?.role || 'VIEWER'} (Requires MANAGER or ADMIN privileges)`}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>New Shipment</span>
-          {!canManageShipments && <span className="action-lock-icon">🔒</span>}
+          {!canManageShipments && <span className="action-lock-icon" title="Locked for VIEWER">🔒</span>}
         </button>
 
         {/* Dispatch Route: Requires ADMIN or MANAGER */}
@@ -41,42 +41,35 @@ export default function QuickActions({ onAction }) {
             if (canManageShipments) {
               onAction('Dispatch Route');
             } else {
-              onAction('Action Denied: Route dispatch requires MANAGER or ADMIN role');
+              onAction(`Action Restricted: Route dispatch requires MANAGER or ADMIN privileges (Current role: ${user?.role || 'VIEWER'})`);
             }
           }}
-          title={canManageShipments ? 'Dispatch active transit route' : `Restricted for role: ${user?.role || 'VIEWER'} (Requires MANAGER or ADMIN)`}
+          title={canManageShipments ? 'View or dispatch transit corridors' : `Restricted for role: ${user?.role || 'VIEWER'} (Requires MANAGER or ADMIN privileges)`}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
           <span>Dispatch Route</span>
-          {!canManageShipments && <span className="action-lock-icon">🔒</span>}
+          {!canManageShipments && <span className="action-lock-icon" title="Locked for VIEWER">🔒</span>}
         </button>
 
-        {/* AI Optimization Action: Requires ADMIN or MANAGER */}
+        {/* Risk Audit Action: Available to all authenticated roles for visibility */}
         <button 
-          className={`btn-action ai-optimize ${!canOptimizeRoutes ? 'btn-restricted' : ''}`}
+          className="btn-action ai-optimize"
           id="btn-quick-ai-optimizer"
-          onClick={() => {
-            if (canOptimizeRoutes) {
-              onAction('AI Route Optimization Algorithm');
-            } else {
-              onAction('Action Denied: AI corridor optimization requires MANAGER or ADMIN role');
-            }
-          }}
-          title={canOptimizeRoutes ? 'scikit-learn dynamic routing optimization' : `Restricted for role: ${user?.role || 'VIEWER'} (Requires MANAGER or ADMIN)`}
+          onClick={() => onAction('Audit Fleet Delay Risk')}
+          title="Recalculate explainable delay risk scores across active shipments"
         >
-          <span className="ai-pill-tag">AI OPTIMIZE</span>
-          <span>Dynamic Route Optimizer</span>
-          {!canOptimizeRoutes && <span className="action-lock-icon">🔒</span>}
+          <span className="ai-pill-tag">CONTROL TOWER</span>
+          <span>Audit Delay Risk</span>
         </button>
 
         {/* Export Manifest: Available to all authenticated roles */}
         <button 
           className="btn-action outline"
           id="btn-quick-export-manifest"
-          onClick={() => onAction('Export Manifest (PDF/CSV)')}
-          title="Export operational manifest"
+          onClick={() => onAction('Export Manifest (CSV)')}
+          title="Export live shipment manifest as RFC 4180 CSV spreadsheet"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -90,7 +83,7 @@ export default function QuickActions({ onAction }) {
       <div className="actions-right">
         <span className="telematics-status">
           <span className="telematics-pulse" />
-          Telematics Link: <strong>Active (2.4s sync)</strong>
+          Telematics Link: <strong>Active Telemetry</strong>
         </span>
       </div>
     </div>

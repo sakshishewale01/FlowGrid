@@ -42,6 +42,8 @@ export function useDashboardData() {
   const [inventorySummary, setInventorySummary] = useState(null);
   const [driverAnalytics, setDriverAnalytics] = useState(null);
   const [vehicleAnalytics, setVehicleAnalytics] = useState(null);
+  const [delayRiskSummary, setDelayRiskSummary] = useState(null);
+  const [delayRiskShipments, setDelayRiskShipments] = useState([]);
 
   const isMountedRef = useRef(true);
 
@@ -106,6 +108,7 @@ export function useDashboardData() {
         warehousesApi.listWarehouses({ limit: 10 }),
         analyticsApi.getDriverAnalytics(),
         analyticsApi.getVehicleAnalytics(),
+        analyticsApi.getDelayRisk({ limit: 10 }),
       ]);
 
       if (!isMountedRef.current) return;
@@ -120,6 +123,7 @@ export function useDashboardData() {
         warehousesListRes,
         driverAnalyticsRes,
         vehicleAnalyticsRes,
+        delayRiskRes,
       ] = results;
 
       // 1. Process Overview & KPI Metrics
@@ -379,6 +383,13 @@ export function useDashboardData() {
         setVehicleAnalytics(vehicleAnalyticsRes.value);
       }
 
+      // 9. Process Explainable Delay Risk Analytics
+      if (delayRiskRes.status === 'fulfilled' && delayRiskRes.value) {
+        const dr = delayRiskRes.value;
+        setDelayRiskSummary(dr.summary || null);
+        setDelayRiskShipments(dr.shipments || []);
+      }
+
       // Check if all primary queries failed
       const criticalFailures = results.filter((r) => r.status === 'rejected');
       if (criticalFailures.length === results.length) {
@@ -413,6 +424,8 @@ export function useDashboardData() {
     inventorySummary,
     driverAnalytics,
     vehicleAnalytics,
+    delayRiskSummary,
+    delayRiskShipments,
     refetch: () => loadData(true),
   };
 }

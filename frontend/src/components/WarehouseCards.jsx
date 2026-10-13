@@ -1,6 +1,11 @@
 import React from 'react';
 
-export default function WarehouseCards({ warehouses = [], loading = false, inventorySummary = null }) {
+export default function WarehouseCards({
+  warehouses = [],
+  loading = false,
+  inventorySummary = null,
+  onNavigate = null,
+}) {
   return (
     <div className="warehouses-panel" id="warehouses-panel">
       <div className="panel-title-bar">
@@ -12,14 +17,26 @@ export default function WarehouseCards({ warehouses = [], loading = false, inven
         </div>
         <div className="panel-header-badges">
           {inventorySummary && (
-            <span className="inventory-stat-chip" title="Total inventory on hand across network">
+            <button
+              type="button"
+              className="inventory-stat-chip"
+              onClick={() => onNavigate && onNavigate('inventory')}
+              style={{ cursor: onNavigate ? 'pointer' : 'default', border: 'none', background: 'inherit' }}
+              title="Navigate to Inventory Management"
+            >
               Stock: <strong>{Number(inventorySummary.totalQuantity).toLocaleString()} units</strong>
-            </span>
+            </button>
           )}
           {inventorySummary?.lowStockCount > 0 && (
-            <span className="inventory-alert-chip" title="Items below safety threshold">
+            <button
+              type="button"
+              className="inventory-alert-chip"
+              onClick={() => onNavigate && onNavigate('inventory')}
+              style={{ cursor: onNavigate ? 'pointer' : 'default', border: 'none', background: 'inherit' }}
+              title="Navigate to Inventory to view Low Stock warnings"
+            >
               ⚠️ {inventorySummary.lowStockCount} Low Stock
-            </span>
+            </button>
           )}
         </div>
       </div>
@@ -49,7 +66,22 @@ export default function WarehouseCards({ warehouses = [], loading = false, inven
             const isHighLoad = wh.capacityUsed >= 90;
 
             return (
-              <div key={wh.id} className="warehouse-card" id={`wh-card-${wh.id}`}>
+              <div
+                key={wh.id}
+                className="warehouse-card"
+                id={`wh-card-${wh.id}`}
+                onClick={() => onNavigate && onNavigate('warehouses')}
+                role={onNavigate ? 'button' : undefined}
+                tabIndex={onNavigate ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (onNavigate && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    onNavigate('warehouses');
+                  }
+                }}
+                style={onNavigate ? { cursor: 'pointer' } : undefined}
+                title={onNavigate ? `View details for facility ${wh.name}` : undefined}
+              >
                 <div className="wh-header">
                   <div>
                     <span className="wh-code">{wh.id}</span>

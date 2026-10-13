@@ -80,8 +80,19 @@ export default function PipelineStepper({ stages = [], loading = false }) {
             </span>
             <span className="inspector-desc">{selectedStage.description}</span>
           </div>
-          <div className="inspector-right">
+          <div className="inspector-right" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span className="pipeline-percent-badge">{selectedStage.percent} of active volume</span>
+            {onNavigate && (
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={() => onNavigate('shipments')}
+                title={`View ${selectedStage.name} shipments manifest`}
+              >
+                View Manifest →
+              </button>
+            )}
           </div>
         </div>
       )}

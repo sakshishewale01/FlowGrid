@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -18,6 +18,7 @@ import AiInsightPanel from './components/AiInsightPanel';
 import NewShipmentModal from './components/NewShipmentModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import authApi from './api/auth';
+import { exportShipmentsToCSV } from './services/exportService';
 
 import WarehousesPage from './pages/WarehousesPage';
 import InventoryPage from './pages/InventoryPage';
@@ -25,8 +26,8 @@ import DriversPage from './pages/DriversPage';
 import VehiclesPage from './pages/VehiclesPage';
 import ShipmentsPage from './pages/ShipmentsPage';
 import RoutesPage from './pages/RoutesPage';
-
-import { aiOptimizationInsights } from './data/mockLogisticsData';
+import AnalyticsPage from './pages/AnalyticsPage';
+import SettingsPage from './pages/SettingsPage';
 
 /**
  * Determine initial route based on URL path.
@@ -42,6 +43,8 @@ function getInitialRoute() {
   if (path.includes('vehicles')) return 'vehicles';
   if (path.includes('shipments')) return 'shipments';
   if (path.includes('routes')) return 'routes';
+  if (path.includes('analytics')) return 'analytics';
+  if (path.includes('settings')) return 'settings';
   return 'dashboard';
 }
 
@@ -53,6 +56,8 @@ function getPageTitle(currentRoute) {
     case 'vehicles': return 'Fleet Vehicles';
     case 'shipments': return 'Shipment Operations';
     case 'routes': return 'Transit Corridors';
+    case 'analytics': return 'Fleet Analytics & Delay Risk Control Tower';
+    case 'settings': return 'Node Configuration & Access Governance';
     case 'dashboard':
     default:
       return 'Logistics Overview';
@@ -61,6 +66,7 @@ function getPageTitle(currentRoute) {
 
 function AppContent() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { toast } = useToast();
   const [route, setRoute] = useState(getInitialRoute);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [backendHealth, setBackendHealth] = useState(null);
@@ -80,6 +86,8 @@ function AppContent() {
     recentShipments,
     corridors,
     inventorySummary,
+    delayRiskSummary,
+    delayRiskShipments,
     refetch: refetchDashboardData,
   } = useDashboardData();
 
@@ -148,20 +156,58 @@ function AppContent() {
       setIsShipmentModalOpen(true);
       return;
     }
-    showNotification(`Operational Action Triggered: "${actionName}"`);
-  };
-
-  const handleRunAiForecast = () => {
-    if (user?.role === 'VIEWER' || user?.role === 'DRIVER') {
-      showNotification(`Access Restricted: Dynamic AI forecasting requires MANAGER or ADMIN role. (Current: ${user?.role})`);
+    if (actionName === 'Dispatch Route') {
+      navigate('routes');
       return;
     }
-    showNotification('AI Route Optimization Algorithm triggered: Analyzing active freight corridors...');
+    if (actionName === 'Audit Fleet Delay Risk') {
+      refetchDashboardData();
+      toast.info('Recalculating deterministic delay risk across active shipments...');
+      return;
+    }
+    if (actionName === 'Export Manifest (CSV)') {
+      try {
+        const rawList = recentShipments.map((s) => s.raw).filter(Boolean);
+        if (rawList.length > 0) {
+          const count = exportShipmentsToCSV(rawList);
+          toast.success(`Exported ${count} active line-haul shipments to CSV`);
+        } else {
+          toast.info('No active shipments recorded to export.');
+        }
+      } catch (err) {
+        toast.error(err.message || 'Failed to export manifest');
+      }
+      return;
+    }
+    showNotification(`Operational Action: "${actionName}"`);
+  };
+
+  const handleRunAiAudit = () => {
+    refetchDashboardData();
+    toast.info('Auditing fleet-wide delay risk scores and staging bottlenecks...');
   };
 
   const handleShipmentCreated = (newShipment) => {
     showNotification(`✓ Shipment ${newShipment.tracking_number} created and dispatched successfully!`);
     refetchDashboardData();
+  };
+
+  const handleGlobalSearch = (query) => {
+    navigate('shipments');
+    showNotification(`Filtering manifests for query: "${query}"`);
+  };
+
+  const handleMetricCardClick = (metricId) => {
+    switch (metricId) {
+      case 'total-shipments':
+      case 'in-transit':
+      case 'delivered':
+      case 'delayed':
+        navigate('shipments');
+        break;
+      default:
+        navigate('shipments');
+    }
   };
 
   // 1. Unauthenticated Login Route
@@ -196,6 +242,7 @@ function AppContent() {
             isCheckingHealth={isCheckingHealth}
             onCheckHealth={checkBackendHealth}
             pageTitle={getPageTitle(route)}
+            onSearch={handleGlobalSearch}
           />
 
           {/* Global Toast Notification */}
@@ -207,6 +254,27 @@ function AppContent() {
             </div>
           )}
 
+          {/* Role Status Notice for VIEWER */}
+          {user?.role === 'VIEWER' && (
+            <div
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderBottom: '1px solid rgba(59, 130, 246, 0.25)',
+                padding: '6px 24px',
+                fontSize: '0.78rem',
+                color: '#93C5FD',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>ℹ️</span>
+              <span>
+                <strong>Viewer Session (Read-Only)</strong>: Live operational telemetry and tracking data are visible. Creation, status transitions, and resource allocation require MANAGER or ADMIN privileges.
+              </span>
+            </div>
+          )}
+
           {/* Primary View Content */}
           <main className="dashboard-content" id="main-dashboard-view">
             {route === 'warehouses' && <WarehousesPage />}
@@ -215,9 +283,11 @@ function AppContent() {
             {route === 'vehicles' && <VehiclesPage />}
             {route === 'shipments' && <ShipmentsPage />}
             {route === 'routes' && <RoutesPage />}
+            {route === 'analytics' && <AnalyticsPage onNavigate={navigate} />}
+            {route === 'settings' && <SettingsPage />}
 
             {/* Default Summary Dashboard Route */}
-            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes'].includes(route)) && (
+            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings'].includes(route)) && (
               <>
                 {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
                 <div className="dashboard-header-bar">
@@ -230,14 +300,26 @@ function AppContent() {
                   </div>
 
                   <div className="header-meta-group">
-                    <div className="facility-status-pill">
+                    <button
+                      type="button"
+                      className="facility-status-pill"
+                      onClick={() => navigate('warehouses')}
+                      style={{ cursor: 'pointer', background: 'inherit', border: '1px solid var(--border-subtle)' }}
+                      title="View Facilities"
+                    >
                       <span className="indicator-dot online" />
                       <span>{overview ? `${overview.total_warehouses} Warehouses Registered` : '3 Warehouses Optimal'}</span>
-                    </div>
-                    <div className="facility-status-pill">
+                    </button>
+                    <button
+                      type="button"
+                      className="facility-status-pill"
+                      onClick={() => navigate('drivers')}
+                      style={{ cursor: 'pointer', background: 'inherit', border: '1px solid var(--border-subtle)' }}
+                      title="View Fleet Drivers"
+                    >
                       <span className="indicator-dot in-transit" />
                       <span>{overview ? `${overview.total_drivers} Fleet Drivers` : 'Active Drivers'}</span>
-                    </div>
+                    </button>
                     <button
                       className="btn-refresh-telematics"
                       onClick={refetchDashboardData}
@@ -283,11 +365,16 @@ function AppContent() {
                 {/* Quick Action Buttons with Role Gating */}
                 <QuickActions onAction={handleQuickAction} />
 
-                {/* Summary KPI Cards (Connected to live backend overview) */}
+                {/* Summary KPI Cards (Connected to live backend overview, interactive direct navigation) */}
                 <section className="metrics-grid" aria-label="Summary KPI Metrics">
                   {metrics.length > 0 ? (
                     metrics.map((metric) => (
-                      <MetricCard key={metric.id} metric={metric} loading={isDataLoading} />
+                      <MetricCard
+                        key={metric.id}
+                        metric={metric}
+                        loading={isDataLoading}
+                        onClick={() => handleMetricCardClick(metric.id)}
+                      />
                     ))
                   ) : (
                     [1, 2, 3, 4].map((id) => (
@@ -296,29 +383,41 @@ function AppContent() {
                   )}
                 </section>
 
-                {/* Shipment Lifecycle Visualization (Connected to live shipment state counts) */}
+                {/* Shipment Lifecycle Visualization */}
                 <section className="dashboard-section" aria-label="Shipment Lifecycle Pipeline">
-                  <PipelineStepper stages={pipelineStages} loading={isDataLoading} />
+                  <PipelineStepper
+                    stages={pipelineStages}
+                    loading={isDataLoading}
+                    onNavigate={navigate}
+                  />
                 </section>
 
-                {/* AI / Optimization Insight Panel */}
-                <section className="dashboard-section" aria-label="AI Optimization Insights">
+                {/* Intelligent Risk Control Tower Panel (Connected to live deterministic delay risk) */}
+                <section className="dashboard-section" aria-label="Delay Risk & Dispatch Readiness">
                   <AiInsightPanel 
-                    insights={aiOptimizationInsights} 
-                    onRunForecast={handleRunAiForecast}
+                    delayRiskSummary={delayRiskSummary}
+                    delayRiskShipments={delayRiskShipments}
+                    onRunAudit={handleRunAiAudit}
+                    onNavigate={navigate}
+                    loading={isDataLoading}
                   />
                 </section>
 
                 {/* Two-Column Middle Grid: Route Map & Warehouse Performance */}
                 <div className="dashboard-split-grid">
                   <section className="split-col-map" aria-label="Freight Corridor Map">
-                    <RouteMapPanel corridors={corridors} loading={isDataLoading} />
+                    <RouteMapPanel
+                      corridors={corridors}
+                      loading={isDataLoading}
+                      onNavigate={navigate}
+                    />
                   </section>
                   <section className="split-col-wh" aria-label="Warehouse Facilities">
                     <WarehouseCards 
                       warehouses={warehouses} 
                       loading={isDataLoading} 
                       inventorySummary={inventorySummary}
+                      onNavigate={navigate}
                     />
                   </section>
                 </div>
@@ -337,14 +436,14 @@ function AppContent() {
           {/* Operational Footer */}
           <footer className="ops-footer">
             <div className="footer-left">
-              <span><strong>FlowGrid</strong> • Deep Tech Blue Logistics Control Center</span>
+              <span><strong>FlowGrid</strong> • Logistics Control Center</span>
               <span className="footer-separator">|</span>
               <span>Authenticated Role: <strong>{user?.role || 'ANONYMOUS'}</strong></span>
             </div>
             <div className="footer-right">
               <span>FastAPI Backend: <code>http://127.0.0.1:8000</code></span>
               <span className="footer-separator">•</span>
-              <span>Phase 17 End-to-End Workflow & UX Polish</span>
+              <span>Operational Control Tower</span>
             </div>
           </footer>
         </div>
@@ -371,4 +470,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
