@@ -8,6 +8,7 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
+import ErrorBoundary from './components/ErrorBoundary';
 import MetricCard from './components/MetricCard';
 import PipelineStepper from './components/PipelineStepper';
 import WarehouseCards from './components/WarehouseCards';
@@ -275,8 +276,9 @@ function AppContent() {
             </div>
           )}
 
-          {/* Primary View Content */}
-          <main className="dashboard-content" id="main-dashboard-view">
+          {/* Primary View Content protected by ErrorBoundary */}
+          <ErrorBoundary onReset={refetchDashboardData}>
+            <main className="dashboard-content" id="main-dashboard-view">
             {route === 'warehouses' && <WarehousesPage />}
             {route === 'inventory' && <InventoryPage />}
             {route === 'drivers' && <DriversPage />}
@@ -432,6 +434,7 @@ function AppContent() {
               </>
             )}
           </main>
+          </ErrorBoundary>
 
           {/* Operational Footer */}
           <footer className="ops-footer">

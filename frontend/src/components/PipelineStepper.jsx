@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function PipelineStepper({ stages = [], loading = false }) {
+export default function PipelineStepper({ stages = [], loading = false, onNavigate = null }) {
   const [selectedStage, setSelectedStage] = useState(null);
 
   useEffect(() => {

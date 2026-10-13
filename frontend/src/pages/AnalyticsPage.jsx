@@ -3,7 +3,6 @@ import { analyticsApi } from '../api/analytics.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
-import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { exportShipmentsToCSV } from '../services/exportService.js';
 import { useToast } from '../context/ToastContext';
@@ -18,7 +17,6 @@ export default function AnalyticsPage({ onNavigate = null }) {
   const [delayRisk, setDelayRisk] = useState(null);
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [driverStats, setDriverStats] = useState(null);
-  const [vehicleStats, setVehicleStats] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -47,12 +45,13 @@ export default function AnalyticsPage({ onNavigate = null }) {
   }, [fetchData]);
 
   const summary = delayRisk?.summary || null;
-  const shipments = delayRisk?.shipments || [];
+  const rawShipments = delayRisk?.shipments;
 
   const filteredShipments = useMemo(() => {
-    if (riskFilter === 'ALL') return shipments;
-    return shipments.filter((s) => s.risk_category === riskFilter);
-  }, [shipments, riskFilter]);
+    const list = rawShipments || [];
+    if (riskFilter === 'ALL') return list;
+    return list.filter((s) => s.risk_category === riskFilter);
+  }, [rawShipments, riskFilter]);
 
   const columns = useMemo(() => [
     {
@@ -133,7 +132,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (s) => (
+      render: () => (
         <button
           type="button"
           className="btn-action outline"
