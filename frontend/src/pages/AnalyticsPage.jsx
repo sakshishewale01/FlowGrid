@@ -17,6 +17,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
   const [delayRisk, setDelayRisk] = useState(null);
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [driverStats, setDriverStats] = useState(null);
+  const [vehicleStats, setVehicleStats] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -45,13 +46,15 @@ export default function AnalyticsPage({ onNavigate = null }) {
   }, [fetchData]);
 
   const summary = delayRisk?.summary || null;
-  const rawShipments = delayRisk?.shipments;
+  const shipments = useMemo(
+    () => (Array.isArray(delayRisk?.shipments) ? delayRisk.shipments : []),
+    [delayRisk]
+  );
 
   const filteredShipments = useMemo(() => {
-    const list = rawShipments || [];
-    if (riskFilter === 'ALL') return list;
-    return list.filter((s) => s.risk_category === riskFilter);
-  }, [rawShipments, riskFilter]);
+    if (riskFilter === 'ALL') return shipments;
+    return shipments.filter((s) => s.risk_category === riskFilter);
+  }, [shipments, riskFilter]);
 
   const columns = useMemo(() => [
     {
