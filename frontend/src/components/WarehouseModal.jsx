@@ -51,18 +51,40 @@ export default function WarehouseModal({ isOpen, onClose, warehouse = null, onSa
 
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim() || formData.name.trim().length < 2) {
-      errs.name = 'Warehouse name must be at least 2 characters.';
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      errs.name = 'Facility name is required.';
+    } else if (trimmedName.length < 2) {
+      errs.name = 'Facility name must be at least 2 characters.';
+    } else if (trimmedName.length > 100) {
+      errs.name = 'Facility name must not exceed 100 characters.';
     }
-    if (!formData.location.trim() || formData.location.trim().length < 2) {
-      errs.location = 'Location (e.g. city/state) must be at least 2 characters.';
+
+    const trimmedLocation = formData.location.trim();
+    if (!trimmedLocation) {
+      errs.location = 'City / Region is required.';
+    } else if (trimmedLocation.length < 2) {
+      errs.location = 'City / Region must be at least 2 characters.';
+    } else if (trimmedLocation.length > 150) {
+      errs.location = 'City / Region must not exceed 150 characters.';
     }
-    if (!formData.address.trim() || formData.address.trim().length < 3) {
+
+    const trimmedAddress = formData.address.trim();
+    if (!trimmedAddress) {
+      errs.address = 'Street address is required.';
+    } else if (trimmedAddress.length < 3) {
       errs.address = 'Street address must be at least 3 characters.';
+    } else if (trimmedAddress.length > 255) {
+      errs.address = 'Street address must not exceed 255 characters.';
     }
-    if (!formData.capacity || Number(formData.capacity) <= 0) {
-      errs.capacity = 'Capacity must be greater than 0.';
+
+    const capNum = Number(formData.capacity);
+    if (!formData.capacity || isNaN(capNum) || capNum <= 0) {
+      errs.capacity = 'Storage capacity must be greater than 0.';
+    } else if (capNum > 50000000) {
+      errs.capacity = 'Capacity cannot exceed 50,000,000 units.';
     }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -104,24 +126,26 @@ export default function WarehouseModal({ isOpen, onClose, warehouse = null, onSa
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="wh-modal-title">
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-header-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="modal-header-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 21h18M3 7v14m18-14v14M6 11h4m-4 4h4m4-4h4m-4 4h4M9 3h6l3 4H6l3-4z" />
             </svg>
           </div>
           <div className="modal-header-text">
             <h2 id="wh-modal-title" className="modal-title">
-              {isEdit ? `Edit Warehouse #${warehouse.id}` : 'Register Warehouse Facility'}
+              {isEdit ? `Edit Warehouse #${warehouse.id}` : 'Register a Warehouse'}
             </h2>
             <p className="modal-subtitle">
-              {isEdit ? 'Modify location details, floor capacity, or operational status' : 'Add a new distribution terminal or fulfillment center to FlowGrid'}
+              {isEdit
+                ? 'Modify location details, floor capacity, or operational status.'
+                : 'Add a facility to your logistics network.'}
             </p>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close modal">×</button>
         </div>
 
         {apiError && (
-          <div className="auth-alert error" style={{ margin: '0 24px 16px' }} role="alert">
+          <div className="auth-alert error" style={{ margin: '16px 24px 0' }} role="alert">
             <div className="auth-alert-content">
               <span className="auth-alert-title">Operation Failed</span>
               <span className="auth-alert-text">{apiError}</span>
@@ -129,69 +153,138 @@ export default function WarehouseModal({ isOpen, onClose, warehouse = null, onSa
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} className="modal-form" noValidate>
+          {/* Facility Name */}
           <div className="form-group">
-            <label className="form-label" htmlFor="wh-name">Facility Name *</label>
+            <label className="form-label" htmlFor="wh-name">
+              <span className="form-label-title">
+                Facility Name <span className="form-required-star" aria-hidden="true">*</span>
+              </span>
+            </label>
             <input
               id="wh-name"
               type="text"
               className={`form-input ${errors.name ? 'input-error' : ''}`}
-              placeholder="e.g. Chicago Central Hub"
+              placeholder="e.g. Pune Central Logistics Hub"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               disabled={isSubmitting}
+              aria-required="true"
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? 'wh-name-error' : undefined}
             />
-            {errors.name && <span className="field-error-text">{errors.name}</span>}
+            {errors.name && (
+              <span id="wh-name-error" className="field-error-text" role="alert">
+                {errors.name}
+              </span>
+            )}
           </div>
 
+          {/* City / Region & Storage Capacity */}
           <div className="form-row-2">
             <div className="form-group">
-              <label className="form-label" htmlFor="wh-location">Metropolitan Region *</label>
+              <label className="form-label" htmlFor="wh-location">
+                <span className="form-label-title">
+                  City / Region <span className="form-required-star" aria-hidden="true">*</span>
+                </span>
+              </label>
               <input
                 id="wh-location"
                 type="text"
+                list="wh-supported-regions"
                 className={`form-input ${errors.location ? 'input-error' : ''}`}
-                placeholder="e.g. Chicago, IL"
+                placeholder="e.g. Pune, Maharashtra"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 disabled={isSubmitting}
+                aria-required="true"
+                aria-invalid={Boolean(errors.location)}
+                aria-describedby={errors.location ? 'wh-location-error' : 'wh-location-hint'}
               />
-              {errors.location && <span className="field-error-text">{errors.location}</span>}
+              <datalist id="wh-supported-regions">
+                <option value="Pune, Maharashtra" />
+                <option value="Delhi NCR" />
+                <option value="Chennai, Tamil Nadu" />
+                <option value="Ahmedabad, Gujarat" />
+                <option value="Kolkata, West Bengal" />
+                <option value="Mumbai, Maharashtra" />
+                <option value="Bengaluru, Karnataka" />
+                <option value="Hyderabad, Telangana" />
+              </datalist>
+              <span id="wh-location-hint" className="form-hint">Metropolitan logistics zone or hub city</span>
+              {errors.location && (
+                <span id="wh-location-error" className="field-error-text" role="alert">
+                  {errors.location}
+                </span>
+              )}
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="wh-capacity">Pallet / Unit Capacity *</label>
-              <input
-                id="wh-capacity"
-                type="number"
-                min="1"
-                step="1"
-                className={`form-input ${errors.capacity ? 'input-error' : ''}`}
-                placeholder="e.g. 50000"
-                value={formData.capacity}
-                onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                disabled={isSubmitting}
-              />
-              {errors.capacity && <span className="field-error-text">{errors.capacity}</span>}
+              <label className="form-label" htmlFor="wh-capacity">
+                <span className="form-label-title">
+                  Storage Capacity <span className="form-required-star" aria-hidden="true">*</span>
+                </span>
+              </label>
+              <div className="input-with-unit-wrapper">
+                <input
+                  id="wh-capacity"
+                  type="number"
+                  min="1"
+                  max="50000000"
+                  step="1"
+                  className={`form-input ${errors.capacity ? 'input-error' : ''}`}
+                  placeholder="e.g. 50000"
+                  value={formData.capacity}
+                  onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                  disabled={isSubmitting}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.capacity)}
+                  aria-describedby={errors.capacity ? 'wh-capacity-error' : 'wh-capacity-hint'}
+                />
+                <span className="input-unit-badge">Units / Pallets</span>
+              </div>
+              <span id="wh-capacity-hint" className="form-hint">Total available floor storage positions</span>
+              {errors.capacity && (
+                <span id="wh-capacity-error" className="field-error-text" role="alert">
+                  {errors.capacity}
+                </span>
+              )}
             </div>
           </div>
 
+          {/* Street Address */}
           <div className="form-group">
-            <label className="form-label" htmlFor="wh-address">Street Address *</label>
+            <label className="form-label" htmlFor="wh-address">
+              <span className="form-label-title">
+                Street Address <span className="form-required-star" aria-hidden="true">*</span>
+              </span>
+            </label>
             <input
               id="wh-address"
               type="text"
               className={`form-input ${errors.address ? 'input-error' : ''}`}
-              placeholder="e.g. 1200 Logistics Blvd, Dock 4, Chicago, IL 60601"
+              placeholder="e.g. Plot 42, Hinjewadi Phase 2, MIDC, Pune 411057"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               disabled={isSubmitting}
+              aria-required="true"
+              aria-invalid={Boolean(errors.address)}
+              aria-describedby={errors.address ? 'wh-address-error' : 'wh-address-hint'}
             />
-            {errors.address && <span className="field-error-text">{errors.address}</span>}
+            <span id="wh-address-hint" className="form-hint">Full road, dock, or parcel identifier</span>
+            {errors.address && (
+              <span id="wh-address-error" className="field-error-text" role="alert">
+                {errors.address}
+              </span>
+            )}
           </div>
 
-          <div className="form-group checkbox-group">
-            <label className="checkbox-label" htmlFor="wh-active">
+          {/* Active Status */}
+          <div className="form-group">
+            <label
+              className={`form-checkbox-card ${formData.is_active ? 'checked' : ''}`}
+              htmlFor="wh-active"
+            >
               <input
                 id="wh-active"
                 type="checkbox"
@@ -199,10 +292,16 @@ export default function WarehouseModal({ isOpen, onClose, warehouse = null, onSa
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                 disabled={isSubmitting}
               />
-              <span>Facility is actively receiving and dispatching freight</span>
+              <div className="form-checkbox-content">
+                <span className="form-checkbox-title">This facility can receive and dispatch freight.</span>
+                <span className="form-checkbox-desc">
+                  When enabled, this facility is operational and eligible for shipment allocation, inventory intake, and route assignments.
+                </span>
+              </div>
             </label>
           </div>
 
+          {/* Actions */}
           <div className="modal-actions">
             <button
               type="button"
@@ -216,8 +315,18 @@ export default function WarehouseModal({ isOpen, onClose, warehouse = null, onSa
               type="submit"
               className="btn-action primary"
               disabled={isSubmitting}
+              style={{ minWidth: '170px' }}
             >
-              {isSubmitting ? 'Saving...' : isEdit ? 'Update Warehouse' : 'Register Warehouse'}
+              {isSubmitting ? (
+                <>
+                  <span className="spinner-inline" aria-hidden="true" />
+                  <span>Saving Facility...</span>
+                </>
+              ) : isEdit ? (
+                'Update Warehouse'
+              ) : (
+                'Register Warehouse'
+              )}
             </button>
           </div>
         </form>
