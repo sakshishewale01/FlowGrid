@@ -1,5 +1,5 @@
 # FlowGrid — Database Setup & Migrations Guide
-**PostgreSQL + SQLAlchemy 2.0 + Alembic**
+**PostgreSQL + SQLAlchemy 2.0 +npm  Alembic**
 
 This guide walks you through setting up a local PostgreSQL database, configuring environment variables, verifying connectivity, and managing database schema migrations using Alembic for **FlowGrid Phase 2**.
 

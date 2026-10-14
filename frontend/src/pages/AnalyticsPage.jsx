@@ -6,6 +6,7 @@ import DataTable from '../components/DataTable';
 import EmptyState from '../components/EmptyState';
 import { exportShipmentsToCSV } from '../services/exportService.js';
 import { useToast } from '../context/ToastContext';
+import DelayPredictionModal from '../components/DelayPredictionModal';
 
 export default function AnalyticsPage({ onNavigate = null }) {
   const { toast } = useToast();
@@ -18,6 +19,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [driverStats, setDriverStats] = useState(null);
   const [vehicleStats, setVehicleStats] = useState(null);
+  const [isPredictorOpen, setIsPredictorOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -187,7 +189,24 @@ export default function AnalyticsPage({ onNavigate = null }) {
           label: 'Export Risk CSV',
           onClick: handleExportRiskReport,
         }}
-      />
+      >
+        <button
+          type="button"
+          id="btn-open-ml-delay-predictor"
+          className="btn-action primary"
+          onClick={() => setIsPredictorOpen(true)}
+          title="Open AI/ML India Delay Risk Simulation"
+          style={{
+            background: 'linear-gradient(135deg, #0284C7 0%, #2563EB 100%)',
+            borderColor: '#38BDF8',
+            color: '#FFFFFF',
+            fontWeight: 600,
+          }}
+        >
+          <span style={{ marginRight: '6px' }}>✦</span>
+          <span>Predict Corridor Delay (ML)</span>
+        </button>
+      </PageHeader>
 
       {error && (
         <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
@@ -254,6 +273,11 @@ export default function AnalyticsPage({ onNavigate = null }) {
             }}
           />
         }
+      />
+
+      <DelayPredictionModal
+        isOpen={isPredictorOpen}
+        onClose={() => setIsPredictorOpen(false)}
       />
     </div>
   );
