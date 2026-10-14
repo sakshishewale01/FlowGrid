@@ -1,0 +1,68 @@
+{
+  "experiment_timestamp": "2026-10-15T01:57:56.182786",
+  "dataset_path": "C:\\Users\\saksh\\OneDrive\\Pictures\\Documents\\FlowGrid\\backend\\ml_data\\india\\flowgrid_delay_model_india.csv",
+  "total_records": 1451,
+  "train_records": 1160,
+  "test_records": 291,
+  "class_distribution": {
+    "on_time_0": 1152,
+    "delayed_1": 299,
+    "delayed_percentage": 20.61
+  },
+  "baseline_dummy": {
+    "accuracy": 0.7938144329896907,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "roc_auc": 0.5,
+    "confusion_matrix": [
+      [
+        231,
+        0
+      ],
+      [
+        60,
+        0
+      ]
+    ]
+  },
+  "candidate_random_forest": {
+    "accuracy": 0.6735395189003437,
+    "precision": 0.23076923076923078,
+    "recall": 0.25,
+    "f1": 0.24,
+    "roc_auc": 0.5062049062049061,
+    "confusion_matrix": [
+      [
+        181,
+        50
+      ],
+      [
+        45,
+        15
+      ]
+    ]
+  },
+  "features": {
+    "categorical": [
+      "warehouse",
+      "destination",
+      "transport_mode",
+      "supplier",
+      "driver"
+    ],
+    "numerical": [
+      "distance_km",
+      "month",
+      "day_of_week",
+      "is_weekend"
+    ],
+    "excluded": [
+      "shipment_id",
+      "date",
+      "vehicle",
+      "route"
+    ]
+  },
+  "disclaimer": "NOTICE: The delay labels in this dataset are carried over from synthetic benchmark data and do NOT establish genuine Indian freight operations. This model is an experimental prototype demonstrator and must not be used for real-world operational decisions."
+}

@@ -16,6 +16,7 @@ from app.api.v1.endpoints import (
     routes,
     analytics,
     pipeline,
+    ml,
 )
 
 api_router = APIRouter()
@@ -88,5 +89,12 @@ api_router.include_router(
     pipeline.router,
     prefix="/pipeline",
     tags=["AI Data Pipeline"],
+)
+
+# Register Machine Learning prediction endpoints under /ml
+api_router.include_router(
+    ml.router,
+    prefix="/ml",
+    tags=["Machine Learning"],
 )
 
