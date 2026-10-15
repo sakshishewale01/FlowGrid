@@ -83,7 +83,7 @@ export default function TopNavbar({
             type="text"
             className="search-input"
             id="global-search-input"
-            placeholder="Search tracking #, SKU, warehouse, driver... (Enter)"
+            placeholder="Search shipments, warehouses, drivers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -91,7 +91,7 @@ export default function TopNavbar({
                 onSearch(searchQuery.trim());
               }
             }}
-            aria-label="Global search across shipments, facilities, and drivers"
+            aria-label="Search shipments, warehouses, drivers"
           />
           <button
             type="button"
@@ -106,19 +106,12 @@ export default function TopNavbar({
       </div>
 
       <div className="navbar-right">
-        {/* Operational Date */}
-        <div className="date-badge" id="current-ops-date">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <span>{currentDate}</span>
-        </div>
-
         {/* Live Backend Connection Monitor */}
-        <div className="backend-monitor-pill" id="backend-status-container">
+        <div 
+          className="backend-monitor-pill" 
+          id="backend-status-container"
+          title={`FlowGrid Operational Telemetry • ${currentDate}`}
+        >
           <span className={`status-led ${backendHealth?.ok ? 'connected' : backendHealth === null ? 'idle' : 'disconnected'}`}></span>
           <span className="backend-label">
             {backendHealth?.ok ? 'FastAPI Online' : isCheckingHealth ? 'Pinging...' : 'API Status'}
@@ -134,33 +127,22 @@ export default function TopNavbar({
           </button>
         </div>
 
-        {/* Logistics Assistant Trigger Button */}
-        <button
-          type="button"
-          className="nav-icon-button"
-          id="btn-nav-assistant"
-          onClick={onOpenAssistant}
-          aria-label="Open FlowGrid Logistics Assistant"
-          title="FlowGrid Logistics Assistant (Ask queries, operational rules, delay ML info)"
-          style={{
-            cursor: 'pointer',
-            background: 'rgba(6, 182, 212, 0.12)',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
-            borderRadius: '6px',
-            color: '#38BDF8',
-            padding: '5px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-          }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span className="assistant-btn-label">Assistant</span>
-        </button>
+        {/* Logistics Assistant Quick Launcher */}
+        {onOpenAssistant && (
+          <button
+            type="button"
+            className="nav-icon-button"
+            id="btn-nav-assistant"
+            onClick={onOpenAssistant}
+            aria-label="Open FlowGrid Logistics Assistant"
+            title="FlowGrid Logistics Assistant"
+            style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#38BDF8' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+        )}
 
         {/* Notifications Icon with Badge & Dropdown Panel */}
         <div style={{ position: 'relative' }}>
@@ -190,6 +172,28 @@ export default function TopNavbar({
             onClose={() => setIsNotificationOpen(false)}
           />
         </div>
+
+        {/* Theme Light/Dark Indicator Toggle */}
+        <button
+          type="button"
+          className="nav-icon-button theme-toggle-btn"
+          id="btn-nav-theme-toggle"
+          title="Dark Mode Active (Logistics Control Tower Theme)"
+          aria-label="Theme mode"
+          style={{ cursor: 'pointer', background: 'none', border: 'none', color: '#94A3B8' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
 
 
         {/* User Profile Badge with Interactive Dropdown */}

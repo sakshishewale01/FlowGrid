@@ -9,15 +9,16 @@ import RegisterPage from './components/RegisterPage';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
 import ErrorBoundary from './components/ErrorBoundary';
-import MetricCard from './components/MetricCard';
-import PipelineStepper from './components/PipelineStepper';
-import WarehouseCards from './components/WarehouseCards';
-import RecentShipmentsTable from './components/RecentShipmentsTable';
-import RouteMapPanel from './components/RouteMapPanel';
-import QuickActions from './components/QuickActions';
-import AiInsightPanel from './components/AiInsightPanel';
-import NewShipmentModal from './components/NewShipmentModal';
-import LogisticsAssistantModal from './components/LogisticsAssistantModal';
+import HeroBanner from './components/HeroBanner';
+import ReferenceKpiCards from './components/ReferenceKpiCards';
+import LiveShipmentFlowMap from './components/LiveShipmentFlowMap';
+import ReferenceRecentShipments from './components/ReferenceRecentShipments';
+import FeatureShortcutCards from './components/FeatureShortcutCards';
+import RightOperationalPanel from './components/RightOperationalPanel';
+import ModelDisclaimerBar from './components/ModelDisclaimerBar';
+import DelayPredictionModal from './components/DelayPredictionModal';
+import ShipmentDetailDrawer from './components/ShipmentDetailDrawer';
+import OperationalRecommendationsPanel from './components/OperationalRecommendationsPanel';
 import { useDashboardData } from './hooks/useDashboardData';
 import authApi from './api/auth';
 import { exportShipmentsToCSV } from './services/exportService';
@@ -29,10 +30,9 @@ import VehiclesPage from './pages/VehiclesPage';
 import ShipmentsPage from './pages/ShipmentsPage';
 import RoutesPage from './pages/RoutesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import SettingsPage from './pages/SettingsPage';
 import RescueCenterPage from './pages/RescueCenterPage';
 import DisruptionSimulatorPage from './pages/DisruptionSimulatorPage';
-
-
 
 /**
  * Determine initial route based on URL path.
@@ -52,12 +52,23 @@ function getInitialRoute() {
   if (path.includes('settings')) return 'settings';
   if (path.includes('rescue')) return 'rescue';
   if (path.includes('simulator')) return 'simulator';
+  if (path.includes('recommendations')) return 'recommendations';
   return 'dashboard';
 }
 
 function getPageTitle(currentRoute) {
   switch (currentRoute) {
     case 'warehouses': return 'Warehouse Facilities';
+    case 'inventory': return 'Inventory Management';
+    case 'drivers': return 'Fleet Drivers';
+    case 'vehicles': return 'Fleet Vehicles';
+    case 'shipments': return 'Shipment Operations';
+    case 'routes': return 'Transit Corridors';
+    case 'analytics': return 'Fleet Analytics & Delay Risk Control Tower';
+    case 'settings': return 'Node Configuration & Access Governance';
+    case 'rescue': return 'Shipment Rescue Center';
+    case 'simulator': return 'What-If Disruption Simulator';
+    case 'recommendations': return 'Operational Recommendations';
     case 'inventory': return 'Inventory Management';
     case 'drivers': return 'Fleet Drivers';
     case 'vehicles': return 'Fleet Vehicles';
@@ -83,6 +94,8 @@ function AppContent() {
   const [actionNotice, setActionNotice] = useState(null);
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isPredictorModalOpen, setIsPredictorModalOpen] = useState(false);
+  const [selectedShipment, setSelectedShipment] = useState(null);
 
   // Live Dashboard Data Hook
   const {
@@ -250,6 +263,7 @@ function AppContent() {
           setIsOpen={setIsSidebarOpen}
           onNavigate={navigate}
           onOpenAssistant={() => setIsAssistantOpen(true)}
+          backendHealth={backendHealth}
         />
 
         {/* Main Workspace */}
@@ -307,152 +321,58 @@ function AppContent() {
             {route === 'analytics' && <AnalyticsPage onNavigate={navigate} />}
             {route === 'settings' && <SettingsPage />}
             {route === 'rescue' && <RescueCenterPage onNavigate={navigate} />}
-            {route === 'simulator' && <DisruptionSimulatorPage onNavigate={navigate} />}
+            {route === 'recommendations' && (
+              <div className="recommendations-page-view" style={{ padding: '20px 24px' }}>
+                <OperationalRecommendationsPanel
+                  shipments={recentShipments.map((s) => s.raw || s)}
+                  warehouses={warehouses}
+                  drivers={overview?.drivers || []}
+                  vehicles={overview?.vehicles || []}
+                  onApplied={refetchDashboardData}
+                />
+              </div>
+            )}
 
-            {/* Default Summary Dashboard Route */}
-            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings', 'rescue', 'simulator'].includes(route)) && (
-              <>
-                {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
-                <div className="dashboard-header-bar">
-                  <div className="header-titles">
-                    <div className="breadcrumbs">OPERATIONS CONTROL / OVERVIEW</div>
-                    <h1 className="dashboard-title">Logistics Overview</h1>
-                    <p className="dashboard-caption">
-                      Unified freight coordination, multi-hub inventory, and live API telemetry.
-                    </p>
-                  </div>
+            {/* Default Reference Summary Dashboard Route */}
+            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings', 'rescue', 'simulator', 'recommendations'].includes(route)) && (
+              <div className="ref-dashboard-container" id="ref-dashboard-container">
+                {/* Hero Banner matching Reference */}
+                <HeroBanner />
 
-                  <div className="header-meta-group">
-                    <button
-                      type="button"
-                      className="facility-status-pill"
-                      onClick={() => navigate('warehouses')}
-                      style={{ cursor: 'pointer', background: 'inherit', border: '1px solid var(--border-subtle)' }}
-                      title="View Facilities"
-                    >
-                      <span className="indicator-dot online" />
-                      <span>{overview ? `${overview.total_warehouses} Warehouses Registered` : '3 Warehouses Optimal'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="facility-status-pill"
-                      onClick={() => navigate('drivers')}
-                      style={{ cursor: 'pointer', background: 'inherit', border: '1px solid var(--border-subtle)' }}
-                      title="View Fleet Drivers"
-                    >
-                      <span className="indicator-dot in-transit" />
-                      <span>{overview ? `${overview.total_drivers} Fleet Drivers` : 'Active Drivers'}</span>
-                    </button>
-                    <button
-                      className="btn-refresh-telematics"
-                      onClick={refetchDashboardData}
-                      disabled={isDataRefreshing || isDataLoading}
-                      title="Synchronize real-time operational data from backend"
-                    >
-                      <svg
-                        className={isDataRefreshing ? 'spin-anim' : ''}
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <polyline points="23 4 23 10 17 10" />
-                        <polyline points="1 20 1 14 7 14" />
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                      </svg>
-                      <span>{isDataRefreshing ? 'Syncing...' : 'Sync Telematics'}</span>
-                    </button>
-                  </div>
-                </div>
+                {/* 4 Consistent KPI Cards Directly Beneath Hero */}
+                <ReferenceKpiCards
+                  overview={overview}
+                  delayRiskSummary={delayRiskSummary}
+                  onNavigate={navigate}
+                />
 
-                {/* Dashboard Error Notice (If API Fails) */}
-                {dashboardError && (
-                  <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
-                    <div className="auth-alert-content">
-                      <span className="auth-alert-title">API Synchronization Notice</span>
-                      <span className="auth-alert-text">{dashboardError}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-action outline"
-                      style={{ padding: '4px 12px', fontSize: '0.78rem' }}
-                      onClick={refetchDashboardData}
-                    >
-                      Retry Connection
-                    </button>
-                  </div>
-                )}
-
-                {/* Quick Action Buttons with Role Gating */}
-                <QuickActions onAction={handleQuickAction} />
-
-                {/* Summary KPI Cards (Connected to live backend overview, interactive direct navigation) */}
-                <section className="metrics-grid" aria-label="Summary KPI Metrics">
-                  {metrics.length > 0 ? (
-                    metrics.map((metric) => (
-                      <MetricCard
-                        key={metric.id}
-                        metric={metric}
-                        loading={isDataLoading}
-                        onClick={() => handleMetricCardClick(metric.id)}
+                {/* Main Workspace Split Grid */}
+                <div className="ref-dashboard-split-grid">
+                  <div className="ref-workspace-left">
+                    {/* Upper Row: Live Shipment Flow Map & Recent Shipments Table */}
+                    <div className="ref-middle-split">
+                      <LiveShipmentFlowMap onNavigate={navigate} />
+                      <ReferenceRecentShipments
+                        shipments={recentShipments}
+                        onNavigate={navigate}
+                        onSelectShipment={(s) => setSelectedShipment(s)}
                       />
-                    ))
-                  ) : (
-                    [1, 2, 3, 4].map((id) => (
-                      <MetricCard key={id} metric={null} loading={true} />
-                    ))
-                  )}
-                </section>
+                    </div>
 
-                {/* Shipment Lifecycle Visualization */}
-                <section className="dashboard-section" aria-label="Shipment Lifecycle Pipeline">
-                  <PipelineStepper
-                    stages={pipelineStages}
-                    loading={isDataLoading}
+                    {/* Lower Row: 4 Feature Shortcut Cards */}
+                    <FeatureShortcutCards onNavigate={navigate} />
+                  </div>
+
+                  {/* Right-Side Operational Column */}
+                  <RightOperationalPanel
                     onNavigate={navigate}
+                    onOpenPredictor={() => setIsPredictorModalOpen(true)}
                   />
-                </section>
-
-                {/* Intelligent Risk Control Tower Panel (Connected to live deterministic delay risk) */}
-                <section className="dashboard-section" aria-label="Delay Risk & Dispatch Readiness">
-                  <AiInsightPanel 
-                    delayRiskSummary={delayRiskSummary}
-                    delayRiskShipments={delayRiskShipments}
-                    onRunAudit={handleRunAiAudit}
-                    onNavigate={navigate}
-                    loading={isDataLoading}
-                  />
-                </section>
-
-                {/* Two-Column Middle Grid: Route Map & Warehouse Performance */}
-                <div className="dashboard-split-grid">
-                  <section className="split-col-map" aria-label="Freight Corridor Map">
-                    <RouteMapPanel
-                      corridors={corridors}
-                      loading={isDataLoading}
-                      onNavigate={navigate}
-                    />
-                  </section>
-                  <section className="split-col-wh" aria-label="Warehouse Facilities">
-                    <WarehouseCards 
-                      warehouses={warehouses} 
-                      loading={isDataLoading} 
-                      inventorySummary={inventorySummary}
-                      onNavigate={navigate}
-                    />
-                  </section>
                 </div>
 
-                {/* Recent Shipments Table (Connected to live shipments API) */}
-                <section className="dashboard-section" aria-label="Recent Shipments">
-                  <RecentShipmentsTable 
-                    shipments={recentShipments} 
-                    loading={isDataLoading} 
-                  />
-                </section>
-              </>
+                {/* Bottom Transparent ML Model Disclaimer Bar */}
+                <ModelDisclaimerBar />
+              </div>
             )}
           </main>
           </ErrorBoundary>
@@ -485,6 +405,19 @@ function AppContent() {
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         onNavigate={navigate}
+      />
+
+      {/* ML Corridor Delay Predictor Modal */}
+      <DelayPredictionModal
+        isOpen={isPredictorModalOpen}
+        onClose={() => setIsPredictorModalOpen(false)}
+      />
+
+      {/* Shipment Detail Drawer */}
+      <ShipmentDetailDrawer
+        shipment={selectedShipment}
+        isOpen={Boolean(selectedShipment)}
+        onClose={() => setSelectedShipment(null)}
       />
     </ProtectedRoute>
   );
