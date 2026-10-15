@@ -65,7 +65,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
       sortable: true,
       render: (s) => (
         <div>
-          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#38BDF8' }}>
+          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#38BDF8', fontSize: '0.9rem' }}>
             {s.tracking_number}
           </span>
           <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
@@ -79,11 +79,11 @@ export default function AnalyticsPage({ onNavigate = null }) {
       header: 'Freight Corridor',
       render: (s) => (
         <div>
-          <div className="table-primary-text">
+          <div className="table-primary-text" style={{ fontSize: '0.82rem' }}>
             {s.origin_warehouse_name || 'Origin Hub'} → {s.destination_city}, {s.destination_state}
           </div>
-          <span className="table-secondary-text">
-            {s.is_interstate ? 'Interstate Freight Leg' : 'Intrastate Metro'}
+          <span className="table-secondary-text" style={{ fontSize: '0.72rem' }}>
+            {s.is_interstate ? 'Interstate Freight Leg' : 'Intrastate Metro Transit'}
           </span>
         </div>
       ),
@@ -100,7 +100,10 @@ export default function AnalyticsPage({ onNavigate = null }) {
             <span style={{ fontWeight: 700, color, fontSize: '0.95rem' }}>
               {score} / 100
             </span>
-            <span className={`status-badge badge-${s.risk_category?.toLowerCase() || 'default'}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+            <span
+              className={`status-badge badge-${s.risk_category?.toLowerCase() || 'default'}`}
+              style={{ fontSize: '0.68rem', padding: '2px 6px' }}
+            >
               {s.risk_category}
             </span>
           </div>
@@ -109,26 +112,26 @@ export default function AnalyticsPage({ onNavigate = null }) {
     },
     {
       key: 'dispatch_readiness',
-      header: 'Asset Allocations',
+      header: 'Asset Allocations (DB Grounded)',
       render: (s) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.74rem' }}>
           <span style={{ color: s.has_driver_assigned ? '#10B981' : '#F59E0B' }}>
-            {s.has_driver_assigned ? '✓ Driver Allocated' : '⚠️ Missing Driver (+20)'}
+            {s.has_driver_assigned ? '✓ Driver Allocated' : '⚠️ Missing Driver (+20 pts)'}
           </span>
           <span style={{ color: s.has_vehicle_assigned ? '#10B981' : '#F59E0B' }}>
-            {s.has_vehicle_assigned ? '✓ Equipment Allocated' : '⚠️ Missing Vehicle (+15)'}
+            {s.has_vehicle_assigned ? '✓ Equipment Allocated' : '⚠️ Missing Vehicle (+15 pts)'}
           </span>
           <span style={{ color: s.has_route_assigned ? '#10B981' : '#F59E0B' }}>
-            {s.has_route_assigned ? '✓ Route Assigned' : '⚠️ Missing Route (+10)'}
+            {s.has_route_assigned ? '✓ Route Assigned' : '⚠️ Missing Route (+10 pts)'}
           </span>
         </div>
       ),
     },
     {
       key: 'summary_explanation',
-      header: 'Primary Delay Driver',
+      header: 'Primary Operational Delay Drivers',
       render: (s) => (
-        <span className="table-secondary-text" style={{ maxWidth: '280px', display: 'inline-block' }}>
+        <span className="table-secondary-text" style={{ maxWidth: '280px', display: 'inline-block', fontSize: '0.74rem', lineHeight: '1.3' }}>
           {s.summary_explanation || 'All dispatch factors verified on schedule.'}
         </span>
       ),
@@ -137,18 +140,18 @@ export default function AnalyticsPage({ onNavigate = null }) {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: () => (
+      render: (s) => (
         <button
           type="button"
           className="btn-action outline"
           style={{ padding: '3px 8px', fontSize: '0.72rem' }}
           onClick={(e) => {
             e.stopPropagation();
-            if (onNavigate) onNavigate('shipments');
+            if (onNavigate) onNavigate('rescue');
           }}
-          title="Open shipment in Operations page"
+          title="Open shipment in Rescue Center"
         >
-          View Waybill →
+          Triage in Rescue →
         </button>
       ),
     },
@@ -178,7 +181,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
       <PageHeader
         section="OPERATIONS CONTROL / ANALYTICS"
         title="Fleet Analytics & Delay Risk Control Tower"
-        caption="Deterministic delay risk evaluations (0–100), staging bottleneck identification, and fleet telematics."
+        caption="Deterministic operational delay risk evaluations (0–100), staging bottleneck identification, and fleet telematics."
         metaPills={[
           { label: 'Total Shipments', value: overview?.total_shipments ?? '—' },
           { label: 'Avg Risk Score', value: summary ? `${Math.round(summary.average_risk_score)} / 100` : '—', status: summary?.average_risk_score > 40 ? 'warning' : 'online' },
@@ -220,13 +223,131 @@ export default function AnalyticsPage({ onNavigate = null }) {
         </div>
       )}
 
+      {/* Control Tower Workflow Navigator Cards (DETECT -> RECOMMEND -> SIMULATE RECOVERY) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '16px',
+          marginBottom: '20px',
+        }}
+      >
+        {/* Card 1: DETECT */}
+        <div
+          style={{
+            backgroundColor: '#1E293B',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            borderRadius: '8px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#FCD34D', letterSpacing: '0.05em' }}>
+                STAGE 1 • DETECT & TRIAGE
+              </span>
+              <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+            </div>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC', margin: '0 0 6px 0' }}>
+              Shipment Rescue Center
+            </h4>
+            <p style={{ fontSize: '0.74rem', color: '#94A3B8', margin: 0, lineHeight: '1.4' }}>
+              Detect unassigned drivers, missing equipment, and capacity strain across live shipments.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-action primary"
+            style={{ marginTop: '12px', fontSize: '0.72rem', padding: '5px 10px' }}
+            onClick={() => onNavigate && onNavigate('rescue')}
+          >
+            Open Rescue Center →
+          </button>
+        </div>
+
+        {/* Card 2: SIMULATE RECOVERY */}
+        <div
+          style={{
+            backgroundColor: '#1E293B',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '8px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.05em' }}>
+                STAGE 2 • SIMULATE RECOVERY
+              </span>
+              <span style={{ fontSize: '1.1rem' }}>⚡</span>
+            </div>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC', margin: '0 0 6px 0' }}>
+              What-If Disruption Simulator
+            </h4>
+            <p style={{ fontSize: '0.74rem', color: '#94A3B8', margin: 0, lineHeight: '1.4' }}>
+              Test facility outages, blizzard reroutes, and highway hot-swaps in a zero-mutation sandbox.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-action outline"
+            style={{ marginTop: '12px', fontSize: '0.72rem', padding: '5px 10px', borderColor: '#38BDF8', color: '#38BDF8' }}
+            onClick={() => onNavigate && onNavigate('simulator')}
+          >
+            Launch Disruption Simulator →
+          </button>
+        </div>
+
+        {/* Card 3: ML PROTOTYPE */}
+        <div
+          style={{
+            backgroundColor: '#1E293B',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: '8px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#C084FC', letterSpacing: '0.05em' }}>
+                MACHINE LEARNING PROTOTYPE
+              </span>
+              <span style={{ fontSize: '1.1rem' }}>✦</span>
+            </div>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC', margin: '0 0 6px 0' }}>
+              India Corridor Delay ML Model
+            </h4>
+            <p style={{ fontSize: '0.74rem', color: '#94A3B8', margin: 0, lineHeight: '1.4' }}>
+              Random Forest pipeline inference trained on 1,451 benchmark corridor records (ROC-AUC: 0.5062).
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-action outline"
+            style={{ marginTop: '12px', fontSize: '0.72rem', padding: '5px 10px', borderColor: '#C084FC', color: '#C084FC' }}
+            onClick={() => setIsPredictorOpen(true)}
+          >
+            Test Corridor Model →
+          </button>
+        </div>
+      </div>
+
       {/* Heuristic Methodology Transparency Banner */}
       <div className="ai-route-optimization-box" style={{ marginBottom: '20px' }}>
         <div className="ai-opt-left">
           <span className="ai-sparkle-icon">✦</span>
           <span className="ai-opt-badge">METHODOLOGY INTEGRITY</span>
           <span>
-            Scoring Engine: <strong>Deterministic Operational Heuristic (0–100)</strong>. Explicitly non-calibrated; safe against ML hallucinations.
+            Scoring Engine: <strong>Deterministic Operational Heuristic (0–100)</strong>. Grounded in actual database fields (missing driver +20, missing vehicle +15, missing route +10, overload +20, interstate +15).
           </span>
         </div>
         <button
@@ -239,7 +360,85 @@ export default function AnalyticsPage({ onNavigate = null }) {
         </button>
       </div>
 
-      {/* Risk Filter Bar */}
+      {/* Interactive Risk Tier Distribution Cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '12px',
+          marginBottom: '16px',
+        }}
+      >
+        <div
+          onClick={() => setRiskFilter('CRITICAL')}
+          style={{
+            cursor: 'pointer',
+            backgroundColor: riskFilter === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' : '#1E293B',
+            border: `1px solid ${riskFilter === 'CRITICAL' ? '#EF4444' : '#334155'}`,
+            borderRadius: '6px',
+            padding: '12px',
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>CRITICAL RISK (80–100)</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#EF4444' }}>
+            {summary?.critical_risk_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Severe bottlenecks</div>
+        </div>
+
+        <div
+          onClick={() => setRiskFilter('HIGH')}
+          style={{
+            cursor: 'pointer',
+            backgroundColor: riskFilter === 'HIGH' ? 'rgba(245, 158, 11, 0.2)' : '#1E293B',
+            border: `1px solid ${riskFilter === 'HIGH' ? '#F59E0B' : '#334155'}`,
+            borderRadius: '6px',
+            padding: '12px',
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>HIGH RISK (60–79)</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#F59E0B' }}>
+            {summary?.high_risk_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Resource unassigned</div>
+        </div>
+
+        <div
+          onClick={() => setRiskFilter('MEDIUM')}
+          style={{
+            cursor: 'pointer',
+            backgroundColor: riskFilter === 'MEDIUM' ? 'rgba(56, 189, 248, 0.2)' : '#1E293B',
+            border: `1px solid ${riskFilter === 'MEDIUM' ? '#38BDF8' : '#334155'}`,
+            borderRadius: '6px',
+            padding: '12px',
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>MEDIUM RISK (30–59)</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#38BDF8' }}>
+            {summary?.medium_risk_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Minor corridor strain</div>
+        </div>
+
+        <div
+          onClick={() => setRiskFilter('LOW')}
+          style={{
+            cursor: 'pointer',
+            backgroundColor: riskFilter === 'LOW' ? 'rgba(16, 185, 129, 0.2)' : '#1E293B',
+            border: `1px solid ${riskFilter === 'LOW' ? '#10B981' : '#334155'}`,
+            borderRadius: '6px',
+            padding: '12px',
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>LOW RISK (0–29)</div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#10B981' }}>
+            {summary?.low_risk_count ?? 0}
+          </div>
+          <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Allocations nominal</div>
+        </div>
+      </div>
+
+      {/* Filter Tabs Bar */}
       <div className="filter-controls-bar">
         <div className="filter-tabs" style={{ flexWrap: 'wrap' }}>
           {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'COMPLETED'].map((tier) => (
