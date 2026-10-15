@@ -19,6 +19,8 @@ import ModelDisclaimerBar from './components/ModelDisclaimerBar';
 import DelayPredictionModal from './components/DelayPredictionModal';
 import ShipmentDetailDrawer from './components/ShipmentDetailDrawer';
 import OperationalRecommendationsPanel from './components/OperationalRecommendationsPanel';
+import NewShipmentModal from './components/NewShipmentModal';
+import LogisticsAssistantModal from './components/LogisticsAssistantModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import authApi from './api/auth';
 import { exportShipmentsToCSV } from './services/exportService';
