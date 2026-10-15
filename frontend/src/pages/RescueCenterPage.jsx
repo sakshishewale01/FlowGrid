@@ -2,13 +2,18 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { shipmentsApi } from '../api/shipments.js';
 import { analyticsApi } from '../api/analytics.js';
 import { formatErrorMessage } from '../api/client.js';
+import { warehousesApi } from '../api/warehouses.js';
+import { driversApi } from '../api/drivers.js';
+import { vehiclesApi } from '../api/vehicles.js';
 import PageHeader from '../components/PageHeader';
 import DataTable from '../components/DataTable';
 import EmptyState from '../components/EmptyState';
 import StatusBadge from '../components/StatusBadge';
 import ShipmentDetailDrawer from '../components/ShipmentDetailDrawer';
 import DelayPredictionModal from '../components/DelayPredictionModal';
+import OperationalRecommendationsPanel from '../components/OperationalRecommendationsPanel';
 import { useToast } from '../context/ToastContext';
+
 
 /**
  * Operational Rules applied to live shipment records.
@@ -107,6 +112,9 @@ export default function RescueCenterPage({ onNavigate }) {
   const [shipments, setShipments] = useState([]);
   const [delayRiskMap, setDelayRiskMap] = useState({});
   const [fleetSummary, setFleetSummary] = useState(null);
+  const [warehouses, setWarehouses] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
   // Filters
   const [attentionFilter, setAttentionFilter] = useState('ATTENTION_ONLY'); // 'ATTENTION_ONLY' | 'MISSING_DRIVER' | 'MISSING_VEHICLE' | 'MISSING_ROUTE' | 'CRITICAL' | 'ALL'
@@ -122,13 +130,19 @@ export default function RescueCenterPage({ onNavigate }) {
     setLoading(true);
     setError(null);
     try {
-      const [shipmentsRes, delayRiskRes] = await Promise.all([
+      const [shipmentsRes, delayRiskRes, whRes, drRes, vRes] = await Promise.all([
         shipmentsApi.listShipments({ limit: 200 }),
         analyticsApi.getDelayRisk({ limit: 200 }),
+        warehousesApi.listWarehouses({ limit: 100 }),
+        driversApi.listDrivers({ limit: 100 }),
+        vehiclesApi.listVehicles({ limit: 100 }),
       ]);
 
       const rawShipments = shipmentsRes || [];
       setShipments(rawShipments);
+      setWarehouses(whRes || []);
+      setDrivers(drRes || []);
+      setVehicles(vRes || []);
 
       // Build shipment_id -> delayRisk assessment map
       const rMap = {};
@@ -371,6 +385,14 @@ export default function RescueCenterPage({ onNavigate }) {
       >
         <button
           type="button"
+          className="btn-action secondary"
+          onClick={() => onNavigate && onNavigate('simulator')}
+          title="Open What-If Disruption Simulator"
+        >
+          ⚡ What-If Simulator
+        </button>
+        <button
+          type="button"
           className="btn-action outline"
           onClick={fetchData}
           disabled={loading}
@@ -429,6 +451,15 @@ export default function RescueCenterPage({ onNavigate }) {
           </button>
         </div>
       )}
+
+      {/* Operational Recommendations Panel (Feature 3: Grounded Rules + Human Confirmation) */}
+      <OperationalRecommendationsPanel
+        shipments={shipments}
+        warehouses={warehouses}
+        drivers={drivers}
+        vehicles={vehicles}
+        onApplied={fetchData}
+      />
 
       {/* Filter Tabs & Search Controls */}
       <div className="filter-controls-bar" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
