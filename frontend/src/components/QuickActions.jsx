@@ -53,9 +53,21 @@ export default function QuickActions({ onAction }) {
           {!canManageShipments && <span className="action-lock-icon" title="Locked for VIEWER">🔒</span>}
         </button>
 
-        {/* Risk Audit Action: Available to all authenticated roles for visibility */}
+        {/* Rescue Center Triage */}
         <button 
           className="btn-action ai-optimize"
+          id="btn-quick-rescue-center"
+          onClick={() => onAction('Open Rescue Center')}
+          title="Open Shipment Rescue Center to resolve dispatch bottlenecks"
+          style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%)', borderColor: '#F59E0B', color: '#FCD34D' }}
+        >
+          <span className="ai-pill-tag" style={{ background: '#F59E0B', color: '#0F172A' }}>DETECT</span>
+          <span>Rescue Center</span>
+        </button>
+
+        {/* Risk Audit Action: Available to all authenticated roles for visibility */}
+        <button 
+          className="btn-action outline"
           id="btn-quick-ai-optimizer"
           onClick={() => onAction('Audit Fleet Delay Risk')}
           title="Recalculate explainable delay risk scores across active shipments"

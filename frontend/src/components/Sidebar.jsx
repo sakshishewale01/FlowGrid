@@ -4,6 +4,7 @@ import RoleBadge from './RoleBadge';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'M3 3h7v7H3V3zm11 0h7v7h-7V3zm-11 11h7v7H3v-7zm11 0h7v7h-7v-7z' },
+  { id: 'rescue', label: 'Rescue Center', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
   { id: 'shipments', label: 'Shipments', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   { id: 'warehouses', label: 'Warehouses', icon: 'M3 21h18M3 7v14m18-14v14M6 11h4m-4 4h4m4-4h4m-4 4h4M9 3h6l3 4H6l3-4z' },
   { id: 'inventory', label: 'Inventory', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },

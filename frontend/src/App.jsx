@@ -29,6 +29,8 @@ import ShipmentsPage from './pages/ShipmentsPage';
 import RoutesPage from './pages/RoutesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import RescueCenterPage from './pages/RescueCenterPage';
+
 
 /**
  * Determine initial route based on URL path.
@@ -46,6 +48,7 @@ function getInitialRoute() {
   if (path.includes('routes')) return 'routes';
   if (path.includes('analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
+  if (path.includes('rescue')) return 'rescue';
   return 'dashboard';
 }
 
@@ -59,6 +62,7 @@ function getPageTitle(currentRoute) {
     case 'routes': return 'Transit Corridors';
     case 'analytics': return 'Fleet Analytics & Delay Risk Control Tower';
     case 'settings': return 'Node Configuration & Access Governance';
+    case 'rescue': return 'Shipment Rescue Center';
     case 'dashboard':
     default:
       return 'Logistics Overview';
@@ -155,6 +159,10 @@ function AppContent() {
   const handleQuickAction = (actionName) => {
     if (actionName === 'Create New Shipment') {
       setIsShipmentModalOpen(true);
+      return;
+    }
+    if (actionName === 'Open Rescue Center') {
+      navigate('rescue');
       return;
     }
     if (actionName === 'Dispatch Route') {
@@ -287,9 +295,10 @@ function AppContent() {
             {route === 'routes' && <RoutesPage />}
             {route === 'analytics' && <AnalyticsPage onNavigate={navigate} />}
             {route === 'settings' && <SettingsPage />}
+            {route === 'rescue' && <RescueCenterPage onNavigate={navigate} />}
 
             {/* Default Summary Dashboard Route */}
-            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings'].includes(route)) && (
+            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings', 'rescue'].includes(route)) && (
               <>
                 {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
                 <div className="dashboard-header-bar">
