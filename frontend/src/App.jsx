@@ -28,8 +28,9 @@ import VehiclesPage from './pages/VehiclesPage';
 import ShipmentsPage from './pages/ShipmentsPage';
 import RoutesPage from './pages/RoutesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import SettingsPage from './pages/SettingsPage';
 import RescueCenterPage from './pages/RescueCenterPage';
+import DisruptionSimulatorPage from './pages/DisruptionSimulatorPage';
+
 
 
 /**
@@ -49,6 +50,7 @@ function getInitialRoute() {
   if (path.includes('analytics')) return 'analytics';
   if (path.includes('settings')) return 'settings';
   if (path.includes('rescue')) return 'rescue';
+  if (path.includes('simulator')) return 'simulator';
   return 'dashboard';
 }
 
@@ -63,6 +65,7 @@ function getPageTitle(currentRoute) {
     case 'analytics': return 'Fleet Analytics & Delay Risk Control Tower';
     case 'settings': return 'Node Configuration & Access Governance';
     case 'rescue': return 'Shipment Rescue Center';
+    case 'simulator': return 'What-If Disruption Simulator';
     case 'dashboard':
     default:
       return 'Logistics Overview';
@@ -296,9 +299,10 @@ function AppContent() {
             {route === 'analytics' && <AnalyticsPage onNavigate={navigate} />}
             {route === 'settings' && <SettingsPage />}
             {route === 'rescue' && <RescueCenterPage onNavigate={navigate} />}
+            {route === 'simulator' && <DisruptionSimulatorPage onNavigate={navigate} />}
 
             {/* Default Summary Dashboard Route */}
-            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings', 'rescue'].includes(route)) && (
+            {(route === 'dashboard' || !['warehouses', 'inventory', 'drivers', 'vehicles', 'shipments', 'routes', 'analytics', 'settings', 'rescue', 'simulator'].includes(route)) && (
               <>
                 {/* Header Row: "Logistics Overview" Heading with Live Telematics Status */}
                 <div className="dashboard-header-bar">
