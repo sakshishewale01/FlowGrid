@@ -17,6 +17,7 @@ import RouteMapPanel from './components/RouteMapPanel';
 import QuickActions from './components/QuickActions';
 import AiInsightPanel from './components/AiInsightPanel';
 import NewShipmentModal from './components/NewShipmentModal';
+import LogisticsAssistantModal from './components/LogisticsAssistantModal';
 import { useDashboardData } from './hooks/useDashboardData';
 import authApi from './api/auth';
 import { exportShipmentsToCSV } from './services/exportService';
@@ -81,6 +82,7 @@ function AppContent() {
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
   const [actionNotice, setActionNotice] = useState(null);
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   // Live Dashboard Data Hook
   const {
@@ -168,6 +170,10 @@ function AppContent() {
       navigate('rescue');
       return;
     }
+    if (actionName === 'Open Assistant') {
+      setIsAssistantOpen(true);
+      return;
+    }
     if (actionName === 'Dispatch Route') {
       navigate('routes');
       return;
@@ -243,6 +249,7 @@ function AppContent() {
           isOpen={isSidebarOpen}
           setIsOpen={setIsSidebarOpen}
           onNavigate={navigate}
+          onOpenAssistant={() => setIsAssistantOpen(true)}
         />
 
         {/* Main Workspace */}
@@ -255,6 +262,7 @@ function AppContent() {
             onCheckHealth={checkBackendHealth}
             pageTitle={getPageTitle(route)}
             onSearch={handleGlobalSearch}
+            onOpenAssistant={() => setIsAssistantOpen(true)}
           />
 
           {/* Global Toast Notification */}
@@ -470,6 +478,13 @@ function AppContent() {
         isOpen={isShipmentModalOpen}
         onClose={() => setIsShipmentModalOpen(false)}
         onCreated={handleShipmentCreated}
+      />
+
+      {/* Grounded Logistics Assistant Modal */}
+      <LogisticsAssistantModal
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        onNavigate={navigate}
       />
     </ProtectedRoute>
   );

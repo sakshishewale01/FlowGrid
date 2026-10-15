@@ -12,6 +12,7 @@ export default function TopNavbar({
   onCheckHealth,
   pageTitle = "Logistics Overview",
   onSearch = null,
+  onOpenAssistant = null,
 }) {
   const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
@@ -132,6 +133,34 @@ export default function TopNavbar({
             {isCheckingHealth ? '...' : 'Ping /health'}
           </button>
         </div>
+
+        {/* Logistics Assistant Trigger Button */}
+        <button
+          type="button"
+          className="nav-icon-button"
+          id="btn-nav-assistant"
+          onClick={onOpenAssistant}
+          aria-label="Open FlowGrid Logistics Assistant"
+          title="FlowGrid Logistics Assistant (Ask queries, operational rules, delay ML info)"
+          style={{
+            cursor: 'pointer',
+            background: 'rgba(6, 182, 212, 0.12)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            borderRadius: '6px',
+            color: '#38BDF8',
+            padding: '5px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span className="assistant-btn-label">Assistant</span>
+        </button>
 
         {/* Notifications Icon with Badge & Dropdown Panel */}
         <div style={{ position: 'relative' }}>

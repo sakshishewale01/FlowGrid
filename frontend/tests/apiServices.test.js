@@ -11,6 +11,7 @@ import {
   trackingApi,
   routesApi,
   analyticsApi,
+  assistantApi,
 } from '../src/api/index.js';
 
 test('API Services: All domain service modules are properly exported', () => {
@@ -59,5 +60,10 @@ test('API Services: analyticsApi has all expected methods', () => {
   assert.equal(typeof analyticsApi.getRouteAnalytics, 'function');
   assert.equal(typeof analyticsApi.getDriverAnalytics, 'function');
   assert.equal(typeof analyticsApi.getVehicleAnalytics, 'function');
+});
+
+test('API Services: assistantApi has all expected methods', () => {
+  assert.ok(assistantApi, 'assistantApi should exist');
+  assert.equal(typeof assistantApi.query, 'function');
 });
 

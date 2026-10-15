@@ -17,6 +17,7 @@ from app.api.v1.endpoints import (
     analytics,
     pipeline,
     ml,
+    assistant,
 )
 
 api_router = APIRouter()
@@ -96,5 +97,12 @@ api_router.include_router(
     ml.router,
     prefix="/ml",
     tags=["Machine Learning"],
+)
+
+# Register Grounded Logistics Assistant endpoint under /assistant
+api_router.include_router(
+    assistant.router,
+    prefix="/assistant",
+    tags=["Logistics Assistant"],
 )
 

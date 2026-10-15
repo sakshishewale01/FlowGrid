@@ -5,6 +5,7 @@ import { driversApi } from '../api/drivers.js';
 import { vehiclesApi } from '../api/vehicles.js';
 import { formatErrorMessage } from '../api/client.js';
 import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
 import { useToast } from '../context/ToastContext';
 
 // Pre-defined deterministic disruption scenarios and recovery actions

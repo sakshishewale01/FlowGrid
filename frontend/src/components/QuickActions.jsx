@@ -76,6 +76,20 @@ export default function QuickActions({ onAction }) {
           <span>Audit Delay Risk</span>
         </button>
 
+        {/* Logistics Assistant Query: Available to all authenticated roles */}
+        <button 
+          className="btn-action outline"
+          id="btn-quick-assistant"
+          onClick={() => onAction('Open Assistant')}
+          title="Open FlowGrid Grounded Logistics Assistant"
+          style={{ borderColor: 'rgba(6, 182, 212, 0.4)', color: '#38BDF8' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Ask Assistant</span>
+        </button>
+
         {/* Export Manifest: Available to all authenticated roles */}
         <button 
           className="btn-action outline"
