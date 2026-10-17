@@ -1,4 +1,4 @@
-~# FlowGrid 🚚
+# FlowGrid 🚚
 
 ### Intelligent Logistics & Supply Chain Management Platform
 
