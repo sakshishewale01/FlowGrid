@@ -14,7 +14,7 @@ Permissions:
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -32,7 +32,12 @@ from app.schemas.tracking import (
     ShipmentTrackingEventResponse,
     LatestTrackingInfoResponse,
 )
+from app.schemas.delivery_confirmation import (
+    DeliveryConfirmationCreate,
+    DeliveryConfirmationResponse,
+)
 from app.services.shipment_service import shipment_service
+from app.services.delivery_confirmation_service import delivery_confirmation_service
 from app.services.tracking_service import tracking_service
 from app.services.connection_manager import tracking_connection_manager
 from datetime import datetime, timezone
@@ -44,6 +49,100 @@ router = APIRouter()
 # ------------------------------------------------------------------------------
 # Shipment Core Endpoints
 # ------------------------------------------------------------------------------
+
+@router.post(
+    "/{shipment_id}/delivery-confirmation",
+    response_model=DeliveryConfirmationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Confirm shipment delivery",
+    description=(
+        "Creates immutable proof-of-delivery metadata and transitions an OUT_FOR_DELIVERY "
+        "shipment to DELIVERED. Only the assigned driver or an ADMIN/MANAGER may submit."
+    ),
+)
+def create_delivery_confirmation(
+    shipment_id: int,
+    payload: DeliveryConfirmationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DeliveryConfirmationResponse:
+    return delivery_confirmation_service.create_confirmation(
+        db,
+        shipment_id,
+        payload,
+        current_user,
+    )
+
+
+@router.get(
+    "/delivery-confirmations/history",
+    response_model=List[DeliveryConfirmationResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Review delivery confirmation history",
+    description="Lists immutable delivery confirmations for managers and administrators.",
+)
+def get_delivery_confirmation_history(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles([UserRole.ADMIN, UserRole.MANAGER])
+    ),
+) -> List[DeliveryConfirmationResponse]:
+    return delivery_confirmation_service.list_confirmations(
+        db,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/delivery-confirmations/missing",
+    response_model=List[ShipmentResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Find delivered shipments without confirmation",
+    description="Lists delivered shipments that do not yet have proof-of-delivery confirmation.",
+)
+def get_delivered_without_confirmation(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles([UserRole.ADMIN, UserRole.MANAGER])
+    ),
+) -> List[ShipmentResponse]:
+    return delivery_confirmation_service.list_delivered_without_confirmation(
+        db,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get(
+    "/{shipment_id}/delivery-confirmation",
+    response_model=DeliveryConfirmationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="View shipment delivery confirmation",
+    description="Returns proof-of-delivery details to the assigned driver or managers/administrators.",
+)
+def get_delivery_confirmation(
+    shipment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DeliveryConfirmationResponse:
+    shipment = shipment_service.get_shipment(db, shipment_id)
+    is_manager = current_user.role in (UserRole.ADMIN, UserRole.MANAGER)
+    is_assigned_driver = bool(
+        current_user.role == UserRole.DRIVER
+        and current_user.driver
+        and shipment.assigned_driver_id == current_user.driver.id
+    )
+    if not (is_manager or is_assigned_driver):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Delivery confirmation access is restricted to the assigned driver or authorized operators",
+        )
+    return delivery_confirmation_service.get_confirmation(db, shipment_id)
 
 @router.post(
     "",

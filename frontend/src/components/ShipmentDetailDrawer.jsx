@@ -82,6 +82,16 @@ export default function ShipmentDetailDrawer({
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [eventError, setEventError] = useState(null);
 
+  // Proof of delivery state
+  const [deliveryConfirmation, setDeliveryConfirmation] = useState(null);
+  const [loadingDeliveryConfirmation, setLoadingDeliveryConfirmation] = useState(false);
+  const [deliveryError, setDeliveryError] = useState(null);
+  const [recipientName, setRecipientName] = useState('');
+  const [deliveryTimestamp, setDeliveryTimestamp] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [evidenceReference, setEvidenceReference] = useState('');
+  const [isSubmittingDelivery, setIsSubmittingDelivery] = useState(false);
+
   // Cancel Confirmation dialog state
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -130,6 +140,26 @@ export default function ShipmentDetailDrawer({
     }
   }, []);
 
+  const loadDeliveryConfirmation = useCallback(async (shipmentId) => {
+    if (!shipmentId || !user || !['ADMIN', 'MANAGER', 'DRIVER'].includes(user.role)) {
+      return;
+    }
+    setLoadingDeliveryConfirmation(true);
+    setDeliveryError(null);
+    try {
+      const confirmation = await shipmentsApi.getDeliveryConfirmation(shipmentId);
+      setDeliveryConfirmation(confirmation);
+    } catch (err) {
+      if (err.status === 404) {
+        setDeliveryConfirmation(null);
+      } else if (err.status !== 403) {
+        setDeliveryError(formatErrorMessage(err));
+      }
+    } finally {
+      setLoadingDeliveryConfirmation(false);
+    }
+  }, [user]);
+
   // Fetch drivers and vehicles when drawer opens
   useEffect(() => {
     if (isOpen) {
@@ -154,9 +184,16 @@ export default function ShipmentDetailDrawer({
       setEventNotes('');
       setStatusError(null);
       setEventError(null);
+      setDeliveryConfirmation(null);
+      setDeliveryError(null);
+      setRecipientName('');
+      setDeliveryTimestamp(new Date().toISOString().slice(0, 16));
+      setDeliveryNotes('');
+      setEvidenceReference('');
       setShowAssignPanel(false);
+      loadDeliveryConfirmation(shipment.id);
     }
-  }, [shipment, isOpen, loadTimelineData, loadDelayRisk]);
+  }, [shipment, isOpen, loadTimelineData, loadDelayRisk, loadDeliveryConfirmation]);
 
   // Polling interval (15s) when live polling is active
   useEffect(() => {
@@ -373,6 +410,46 @@ export default function ShipmentDetailDrawer({
       toast.error(msg);
     } finally {
       setIsAddingEvent(false);
+    }
+  };
+
+  const handleSubmitDeliveryConfirmation = async (e) => {
+    e.preventDefault();
+    if (!recipientName.trim()) {
+      setDeliveryError('Recipient name is required.');
+      return;
+    }
+    if (!deliveryTimestamp) {
+      setDeliveryError('Delivery timestamp is required.');
+      return;
+    }
+
+    setIsSubmittingDelivery(true);
+    setDeliveryError(null);
+    try {
+      const payload = {
+        recipient_name: recipientName.trim(),
+        delivered_at: new Date(deliveryTimestamp).toISOString(),
+        delivery_notes: deliveryNotes.trim() || undefined,
+        evidence_metadata: evidenceReference.trim()
+          ? { reference: evidenceReference.trim() }
+          : undefined,
+      };
+      const confirmation = await shipmentsApi.submitDeliveryConfirmation(
+        shipment.id,
+        payload
+      );
+      setDeliveryConfirmation(confirmation);
+      const updated = await shipmentsApi.getShipment(shipment.id);
+      if (onUpdated) onUpdated(updated);
+      loadTimelineData(shipment.id);
+      toast.success('Delivery confirmation recorded');
+    } catch (err) {
+      const msg = formatErrorMessage(err);
+      setDeliveryError(msg);
+      toast.error(msg);
+    } finally {
+      setIsSubmittingDelivery(false);
     }
   };
 
@@ -758,6 +835,117 @@ export default function ShipmentDetailDrawer({
                 </div>
               </div>
 
+              {/* Proof of Delivery */}
+              <div
+                style={{
+                  marginBottom: '18px',
+                  padding: '16px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '8px',
+                }}
+              >
+                <div style={{ marginBottom: '10px' }}>
+                  <h4 style={{ fontSize: '0.875rem', color: '#F8FAFC', margin: 0 }}>
+                    Proof of Delivery
+                  </h4>
+                  <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: '5px 0 0' }}>
+                    Delivery confirmations record recipient details and operational metadata.
+                    Photo and signature uploads are not supported.
+                  </p>
+                </div>
+
+                {loadingDeliveryConfirmation ? (
+                  <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: 0 }}>
+                    Loading delivery confirmation...
+                  </p>
+                ) : deliveryConfirmation ? (
+                  <div style={{ fontSize: '0.8rem', color: '#D1FAE5' }}>
+                    <div><strong>Confirmed for:</strong> {deliveryConfirmation.recipient_name}</div>
+                    <div><strong>Delivered:</strong> {new Date(deliveryConfirmation.delivered_at).toLocaleString()}</div>
+                    {deliveryConfirmation.delivery_notes && (
+                      <div><strong>Notes:</strong> {deliveryConfirmation.delivery_notes}</div>
+                    )}
+                    {deliveryConfirmation.evidence_metadata?.reference && (
+                      <div><strong>Evidence reference:</strong> {deliveryConfirmation.evidence_metadata.reference}</div>
+                    )}
+                  </div>
+                ) : user?.role === 'DRIVER' || isAuthorized ? (
+                  <form onSubmit={handleSubmitDeliveryConfirmation}>
+                    {deliveryError && (
+                      <div className="auth-alert error" style={{ marginBottom: '10px' }} role="alert">
+                        <span className="auth-alert-text">{deliveryError}</span>
+                      </div>
+                    )}
+                    {currentStatus !== 'OUT_FOR_DELIVERY' && (
+                      <p style={{ fontSize: '0.78rem', color: '#FBBF24', margin: '0 0 10px' }}>
+                        Confirmation is available only while the shipment is OUT FOR DELIVERY.
+                      </p>
+                    )}
+                    <div className="form-row-2">
+                      <div className="form-group" style={{ marginBottom: '8px' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Recipient name *</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          disabled={isSubmittingDelivery || currentStatus !== 'OUT_FOR_DELIVERY'}
+                          maxLength={150}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '8px' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Delivery timestamp *</label>
+                        <input
+                          type="datetime-local"
+                          className="form-input"
+                          value={deliveryTimestamp}
+                          onChange={(e) => setDeliveryTimestamp(e.target.value)}
+                          disabled={isSubmittingDelivery || currentStatus !== 'OUT_FOR_DELIVERY'}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row-2">
+                      <div className="form-group" style={{ marginBottom: '8px' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Delivery notes</label>
+                        <textarea
+                          className="form-input"
+                          value={deliveryNotes}
+                          onChange={(e) => setDeliveryNotes(e.target.value)}
+                          disabled={isSubmittingDelivery || currentStatus !== 'OUT_FOR_DELIVERY'}
+                          maxLength={2000}
+                          rows={2}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '8px' }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Evidence reference (metadata only)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={evidenceReference}
+                          onChange={(e) => setEvidenceReference(e.target.value)}
+                          disabled={isSubmittingDelivery || currentStatus !== 'OUT_FOR_DELIVERY'}
+                          maxLength={500}
+                          placeholder="Internal reference, if available"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn-action primary"
+                      style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                      disabled={isSubmittingDelivery || currentStatus !== 'OUT_FOR_DELIVERY'}
+                    >
+                      {isSubmittingDelivery ? 'Submitting...' : 'Submit Delivery Confirmation'}
+                    </button>
+                  </form>
+                ) : (
+                  <p style={{ fontSize: '0.8rem', color: '#94A3B8', margin: 0 }}>
+                    Delivery confirmation details are available to the assigned driver and authorized operators.
+                  </p>
+                )}
+              </div>
+
               {/* Interactive Workflow Action Center */}
               <div className="workflow-action-center" style={{
                 padding: '16px',
@@ -938,14 +1126,9 @@ export default function ShipmentDetailDrawer({
                     {/* Step 6: Complete Delivery or Record Failure */}
                     {currentStatus === 'OUT_FOR_DELIVERY' && (
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          className="btn-action primary"
-                          disabled={isUpdatingStatus}
-                          onClick={() => executeTransition('DELIVERED', 'Consignee received and signed cargo')}
-                        >
-                          ✓ Confirm Delivery Succeeded
-                        </button>
+                        <span style={{ fontSize: '0.78rem', color: '#A7F3D0' }}>
+                          Complete delivery using the Proof of Delivery form above.
+                        </span>
                         <button
                           type="button"
                           className="btn-action outline"

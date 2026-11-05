@@ -20,9 +20,9 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- Backend automated tests currently pass: **313 passed**.
-- Frontend tests currently report **45 passed, 3 failed, and 1 skipped** because
-  the live backend used by the integration checks contains stale local state.
+- Backend automated tests currently pass: **317 passed**.
+- Frontend tests currently report **41 passed and 8 skipped** because the live
+  backend integration server was not running.
 - The frontend production build succeeds.
 
 The project is **not yet complete under the master prompt's definition of done**.
@@ -33,8 +33,8 @@ The most important remaining work is:
 2. Fix and verify the Docker image's missing runtime assets and migration
    startup behavior.
 3. Perform live end-to-end testing against a disposable database.
-4. Add or explicitly defer proof of delivery, route recommendation, and
-   production-grade operational reporting.
+4. Complete route recommendation, predictive inventory, and production-grade
+   operational reporting.
 5. Complete security hardening for secret enforcement, rate limiting, login
    abuse protection, and dependency review.
 6. Add deployment configuration and verify SPA routing and production API
@@ -46,9 +46,9 @@ The most important remaining work is:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 313 passed, 29 warnings | **COMPLETE** |
-| Backend test collection | 313 tests collected | **COMPLETE** |
-| Frontend test suite | 45 passed, 3 live integration failures, 1 skipped | **PARTIALLY COMPLETE** |
+| Backend test suite | 317 passed, existing dependency warnings | **COMPLETE** |
+| Backend test collection | 317 tests collected | **COMPLETE** |
+| Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
 | Git worktree inspection | README was modified; no unrelated changes observed | **NEEDS MANUAL VERIFICATION** |
 | Clean PostgreSQL migration run | Not performed; Alembic graph validated with one head | **NEEDS MANUAL VERIFICATION** |
@@ -89,7 +89,7 @@ Starlette/httpx stack; they did not fail the suite.
 | Intelligent fleet monitoring | Dashboard, fleet records, assignments, and tracking support exist; real-data behavior needs live verification | **PARTIALLY COMPLETE** |
 | Intelligent route recommendation | Route and simulator features exist, but a clearly defined authorized recommendation engine is not verified | **PARTIALLY COMPLETE** |
 | Predictive inventory intelligence | Threshold-based low-stock behavior exists; historical demand forecasting is not established | **PARTIALLY COMPLETE** |
-| Proof of delivery | Shipment completion/tracking concepts exist, but a complete driver proof-of-delivery upload workflow is not present | **MISSING** |
+| Proof of delivery | Driver/manager confirmation workflow, one-to-one persistence, lifecycle completion, duplicate protection, history review, and missing-confirmation review are implemented and tested; photo/signature upload is intentionally not claimed | **COMPLETE** |
 | Operational reports | Analytics and CSV export exist; a complete report/export surface and on-time metric verification need confirmation | **PARTIALLY COMPLETE** |
 | Delay prediction | Training script, serialized Random Forest, validation schema, inference service, risk bands, and limitation disclosure exist | **COMPLETE** |
 | Assistant grounded in authorized data | Endpoint/service and tests exist; each role's data boundary and no-fabrication behavior need live verification | **PARTIALLY COMPLETE** |
@@ -123,7 +123,7 @@ Starlette/httpx stack; they did not fail the suite.
 | Database transactions and all error paths | **NEEDS MANUAL VERIFICATION** | Unit tests do not replace a clean PostgreSQL workflow test |
 | Pagination and large-list performance | **NEEDS MANUAL VERIFICATION** | Domain endpoints exist, but production-scale query behavior was not measured |
 | Rate limiting and login abuse protection | **PARTIALLY COMPLETE** | Failed authentication and duplicate registration attempts are rate-limited in-process; shared storage is still needed for multi-worker deployments |
-| File upload validation/storage | **MISSING** | Required for proof of delivery but no implemented upload workflow was verified |
+| File upload validation/storage | **MISSING** | Proof-of-delivery stores optional evidence metadata only; no photo/signature upload or private storage workflow is claimed |
 | API behavior in a running server | **NEEDS MANUAL VERIFICATION** | Most backend tests use in-process clients; external frontend integration calls were skipped when the server was offline |
 
 ---
@@ -272,7 +272,7 @@ prompt requires more than unit/in-process coverage:
 - Test production-like Docker startup with migrations and the ML artifact.
 - Replace the in-process rate limiter with shared storage for multi-worker
   deployments.
-- Add tests for proof of delivery once implemented.
+- Add live browser coverage for proof-of-delivery submission and manager review.
 
 ---
 
@@ -291,13 +291,11 @@ prompt requires more than unit/in-process coverage:
 
 ### Priority 1 — critical workflow completeness
 
-1. Implement proof of delivery with driver-only authorization, validated image
-   handling, immutable delivery history, and tests.
-2. Verify and strengthen assistant role boundaries and no-fabrication behavior.
-3. Verify Rescue Center recommendations and manager approval behavior.
-4. Verify route recommendation semantics and clearly distinguish estimates from
+1. Verify and strengthen assistant role boundaries and no-fabrication behavior.
+2. Verify Rescue Center recommendations and manager approval behavior.
+3. Verify route recommendation semantics and clearly distinguish estimates from
    real road routing.
-5. Add live end-to-end workflow tests using a disposable database.
+4. Add live end-to-end workflow tests using a disposable database.
 
 ### Priority 2 — production quality
 
@@ -328,7 +326,7 @@ Follow the master prompt's small-module workflow:
 2. Repair and test the Docker image.
 3. Verify clean PostgreSQL migrations.
 4. Add shared rate limiting and security tests.
-5. Implement proof of delivery.
+5. Verify the proof-of-delivery workflow against a live disposable database.
 6. Run live end-to-end workflows.
 7. Complete deployment and SPA hosting configuration.
 8. Perform browser UX/accessibility and performance checks.

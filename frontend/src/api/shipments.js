@@ -88,6 +88,32 @@ export const shipmentsApi = {
       assigned_vehicle_id: vehicle_id,
     });
   },
+
+  /**
+   * Retrieves immutable proof-of-delivery details for a shipment.
+   */
+  async getDeliveryConfirmation(shipmentId) {
+    return apiClient.get(`/api/v1/shipments/${shipmentId}/delivery-confirmation`);
+  },
+
+  /**
+   * Submits delivery confirmation metadata and completes the shipment.
+   */
+  async submitDeliveryConfirmation(shipmentId, payload) {
+    return apiClient.post(
+      `/api/v1/shipments/${shipmentId}/delivery-confirmation`,
+      payload
+    );
+  },
+
+  /**
+   * Lists delivery confirmation history for managers and administrators.
+   */
+  async listDeliveryConfirmations({ skip = 0, limit = 100 } = {}) {
+    return apiClient.get(
+      `/api/v1/shipments/delivery-confirmations/history?skip=${skip}&limit=${limit}`
+    );
+  },
 };
 
 export default shipmentsApi;

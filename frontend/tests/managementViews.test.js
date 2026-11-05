@@ -51,6 +51,9 @@ test('Management APIs: Shipments status transitions and assignments are availabl
   assert.equal(typeof shipmentsApi.transitionStatus, 'function');
   assert.equal(typeof shipmentsApi.updateStatus, 'function');
   assert.equal(typeof shipmentsApi.assignShipment, 'function');
+  assert.equal(typeof shipmentsApi.getDeliveryConfirmation, 'function');
+  assert.equal(typeof shipmentsApi.submitDeliveryConfirmation, 'function');
+  assert.equal(typeof shipmentsApi.listDeliveryConfirmations, 'function');
 });
 
 test('Management APIs: Routes corridor listing and shipment allocation are available', () => {

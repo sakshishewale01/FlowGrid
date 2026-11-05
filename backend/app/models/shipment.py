@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from app.models.vehicle import Vehicle
     from app.models.tracking import ShipmentStatusHistory, ShipmentTrackingEvent
     from app.models.route import Route, RouteShipment
+    from app.models.delivery_confirmation import DeliveryConfirmation
 
 
 
@@ -164,6 +165,12 @@ class Shipment(Base):
         secondary="route_shipments",
         back_populates="shipments",
         viewonly=True,
+    )
+    delivery_confirmation: Mapped[Optional["DeliveryConfirmation"]] = relationship(
+        "DeliveryConfirmation",
+        back_populates="shipment",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

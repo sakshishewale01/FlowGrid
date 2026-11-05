@@ -38,6 +38,8 @@ implementation currently present in the repository, not only the original plan.
   - Lifecycle state-machine validation
   - Capacity checks before dispatch
   - Estimated delivery timestamps
+  - Proof-of-delivery confirmations with recipient, timestamp, notes, and metadata
+  - Driver/manager authorization, duplicate protection, and delivery history review
   - Terminal-state safeguards
 - **Tracking and routes**
   - Route and freight-corridor management
@@ -161,6 +163,9 @@ Additional application endpoints:
 - `GET /health` — application health
 - `GET /health/db` — database connectivity health
 - `WS /ws/tracking/{shipment_id}` — authenticated live shipment tracking
+- `POST /api/v1/shipments/{shipment_id}/delivery-confirmation` — authorized delivery confirmation
+- `GET /api/v1/shipments/delivery-confirmations/history` — manager/admin delivery history
+- `GET /api/v1/shipments/delivery-confirmations/missing` — delivered shipments without confirmation
 - `/docs` — Swagger UI
 - `/redoc` — ReDoc
 
@@ -278,7 +283,7 @@ cd backend
 pytest -v
 ```
 
-The current suite contains **313 collected tests** covering authentication,
+The current suite contains **317 collected tests** covering authentication,
 RBAC, validation, models, CRUD workflows, analytics, shipment transitions,
 tracking, WebSockets, pipeline behavior, and ML inference.
 
@@ -293,10 +298,9 @@ npm run lint
 
 Latest repository verification:
 
-- Backend: **313 tests**, all passing
-- Frontend: **49 tests**; the latest run had **45 passed**, **3 failed**, and
-  **1 skipped** because an already-running backend contained stale local demo
-  state during live integration checks
+- Backend: **317 tests**, all passing with existing dependency deprecation warnings
+- Frontend: **49 tests**, **41 passed** and **8 skipped** because the backend
+  integration server was not running
 - Frontend production build: **successful**
 - Build output includes a non-blocking bundle-size warning for the main chunk
 
@@ -355,6 +359,7 @@ FlowGrid/
 │   │   │   ├── driver.py
 │   │   │   ├── vehicle.py
 │   │   │   ├── shipment.py
+│   │   │   ├── delivery_confirmation.py
 │   │   │   ├── tracking.py
 │   │   │   └── route.py
 │   │   ├── schemas/                  # Pydantic request/response contracts
@@ -370,7 +375,8 @@ FlowGrid/
 │   │       ├── 027ff684fd07_create_shipments_table.py
 │   │       ├── 63c4732baa7d_create_shipment_tracking_and_history_.py
 │   │       ├── 9090bc4b1426_create_routes_and_route_shipments_tables.py
-│   │       └── a1c2d3e4f5a6_add_estimated_delivery_at_to_shipments.py
+│   │       ├── a1c2d3e4f5a6_add_estimated_delivery_at_to_shipments.py
+│   │       └── b7d8e9f0a1b2_create_delivery_confirmations.py
 │   │
 │   ├── ml/
 │   │   ├── train_india_delay_model.py # Train/evaluate the prototype model
@@ -402,6 +408,7 @@ FlowGrid/
 │       ├── test_products.py
 │       ├── test_routes.py
 │       ├── test_shipments.py
+│       ├── test_delivery_confirmation.py
 │       ├── test_tracking.py
 │       ├── test_vehicles.py
 │       ├── test_warehouses.py

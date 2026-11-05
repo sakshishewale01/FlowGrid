@@ -42,6 +42,9 @@ test('API Services: shipmentsApi has all expected methods', () => {
   assert.equal(typeof shipmentsApi.updateShipment, 'function');
   assert.equal(typeof shipmentsApi.transitionStatus, 'function');
   assert.equal(typeof shipmentsApi.assignShipment, 'function');
+  assert.equal(typeof shipmentsApi.getDeliveryConfirmation, 'function');
+  assert.equal(typeof shipmentsApi.submitDeliveryConfirmation, 'function');
+  assert.equal(typeof shipmentsApi.listDeliveryConfirmations, 'function');
 });
 
 test('API Services: trackingApi has all expected methods', () => {
@@ -66,4 +69,3 @@ test('API Services: assistantApi has all expected methods', () => {
   assert.ok(assistantApi, 'assistantApi should exist');
   assert.equal(typeof assistantApi.query, 'function');
 });
-
