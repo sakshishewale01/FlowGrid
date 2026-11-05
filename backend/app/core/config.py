@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     secret_key: str = DEFAULT_SECRET_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
+    auth_rate_limit_requests: int = 60
+    auth_rate_limit_window_seconds: int = 60
 
     @property
     def is_production(self) -> bool:
@@ -73,6 +75,13 @@ class Settings(BaseSettings):
             )
         if self.database_url.startswith("sqlite"):
             raise ValueError("DATABASE_URL must reference PostgreSQL in production")
+        if not self.allowed_origins or "*" in self.allowed_origins:
+            raise ValueError("Production CORS origins must be explicit and restrictive")
+        if any(
+            origin.lower().startswith(("http://localhost", "http://127.0.0.1"))
+            for origin in self.allowed_origins
+        ):
+            raise ValueError("Production CORS origins must not include local development hosts")
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

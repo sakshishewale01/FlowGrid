@@ -10,11 +10,12 @@ Security Features:
 - Safe generic error messages prevent user enumeration attacks.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.rate_limit import rate_limit_authentication
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserLoginRequest, UserRegisterRequest
@@ -31,6 +32,7 @@ router = APIRouter()
     response_description="The newly registered user details (excluding credentials)",
 )
 def register_user(
+    request: Request,
     payload: UserRegisterRequest,
     db: Session = Depends(get_db),
 ) -> User:
@@ -45,6 +47,7 @@ def register_user(
     stmt = select(User).where(func.lower(User.email) == payload.email.lower().strip())
     existing_user = db.scalars(stmt).first()
     if existing_user:
+        rate_limit_authentication(request, payload.email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email address already exists",
@@ -77,6 +80,7 @@ def register_user(
     response_description="A signed JWT access token and public user profile",
 )
 def login_user(
+    request: Request,
     payload: UserLoginRequest,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
@@ -93,6 +97,7 @@ def login_user(
 
     # Safe credential check: constant-time or generic rejection to prevent timing / enumeration
     if not user or not verify_password(payload.password, user.hashed_password):
+        rate_limit_authentication(request, normalized_email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",

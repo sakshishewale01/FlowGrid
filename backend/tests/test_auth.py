@@ -24,6 +24,7 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
+from app.core.rate_limit import auth_rate_limiter
 from app.db.base import Base
 from app.main import app
 from app.models.user import User, UserRole
@@ -83,8 +84,10 @@ def setup_test_db():
     """
     Base.metadata.create_all(bind=test_engine)
     app.dependency_overrides[get_db] = override_get_db
+    auth_rate_limiter.clear()
     yield
     app.dependency_overrides.clear()
+    auth_rate_limiter.clear()
     Base.metadata.drop_all(bind=test_engine)
 
 
@@ -123,6 +126,18 @@ def test_decode_invalid_jwt_token():
     invalid_token = "invalid.token.structure"
     payload = decode_access_token(invalid_token)
     assert payload is None
+
+
+def test_decode_jwt_without_role_is_rejected():
+    import jwt
+
+    token = jwt.encode(
+        {"sub": "42", "iat": 1_700_000_000, "exp": 4_000_000_000},
+        "flowgrid_super_secret_development_key_32_bytes_min_length_123!",
+        algorithm="HS256",
+    )
+
+    assert decode_access_token(token) is None
 
 
 # ------------------------------------------------------------------------------
@@ -249,6 +264,23 @@ def test_login_nonexistent_user(client):
     assert "Invalid email or password" in response.json()["detail"]
 
 
+def test_failed_login_rate_limit_returns_429(client, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "auth_rate_limit_requests", 1)
+    monkeypatch.setattr(settings, "auth_rate_limit_window_seconds", 60)
+
+    payload = {
+        "email": "rate-limited@flowgrid.io",
+        "password": "WrongPassword123!",
+    }
+    first_response = client.post("/api/v1/auth/login", json=payload)
+    second_response = client.post("/api/v1/auth/login", json=payload)
+
+    assert first_response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert second_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+
 # ------------------------------------------------------------------------------
 # 4. Protected /api/v1/auth/me Endpoint Tests
 # ------------------------------------------------------------------------------
@@ -256,6 +288,30 @@ def test_protected_me_without_token(client):
     response = client.get("/api/v1/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "credentials were not provided" in response.json()["detail"]
+
+
+def test_token_role_mismatch_is_rejected(client):
+    db = TestingSessionLocal()
+    user = User(
+        name="Role Test User",
+        email="role-test@flowgrid.io",
+        hashed_password="hashed_pw_test",
+        role=UserRole.VIEWER,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    token = create_access_token(subject=user.id, role=UserRole.ADMIN.value)
+    db.close()
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "claims are invalid" in response.json()["detail"]
 
 
 def test_protected_me_with_invalid_token(client):

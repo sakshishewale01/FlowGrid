@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
-from app.core.logging import setup_logging, get_logger
+from app.core.logging import sanitize_text_for_logging, setup_logging, get_logger
 from app.db.session import check_db_connection, ensure_db_tables_and_seed
 from app.api.v1.api import api_router
 
@@ -202,7 +202,12 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     Intercepts unhandled database errors and logs full details internally
     while returning a sanitized HTTP 500 error to clients.
     """
-    logger.error("Unhandled database error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    logger.error(
+        "Unhandled database error on %s %s: %s",
+        request.method,
+        request.url.path,
+        sanitize_text_for_logging(str(exc)),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "A database error occurred while processing your request."},
@@ -215,7 +220,12 @@ async def generic_exception_handler(request: Request, exc: Exception):
     Catch-all exception handler to prevent unhandled runtime errors from
     exposing internal server traces, Python paths, or stack frames.
     """
-    logger.critical("Unhandled server exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    logger.critical(
+        "Unhandled server exception on %s %s: %s",
+        request.method,
+        request.url.path,
+        sanitize_text_for_logging(str(exc)),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "An unexpected internal server error occurred."},

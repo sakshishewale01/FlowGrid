@@ -93,8 +93,14 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
             token,
             settings.secret_key,
             algorithms=[settings.algorithm],
-            options={"require": ["exp", "sub", "iat"], "verify_exp": True},
+            options={
+                "require": ["exp", "sub", "iat", "role"],
+                "verify_exp": True,
+                "verify_iat": True,
+            },
         )
+        if payload.get("role") not in {"ADMIN", "MANAGER", "DRIVER", "VIEWER"}:
+            return None
         return payload
     except jwt.ExpiredSignatureError:
         return None

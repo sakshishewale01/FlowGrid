@@ -20,7 +20,7 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- Backend automated tests currently pass: **306 passed**.
+- Backend automated tests currently pass: **313 passed**.
 - Frontend tests currently report **45 passed, 3 failed, and 1 skipped** because
   the live backend used by the integration checks contains stale local state.
 - The frontend production build succeeds.
@@ -46,8 +46,8 @@ The most important remaining work is:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 306 passed, 29 warnings | **COMPLETE** |
-| Backend test collection | 306 tests collected | **COMPLETE** |
+| Backend test suite | 313 passed, 29 warnings | **COMPLETE** |
+| Backend test collection | 313 tests collected | **COMPLETE** |
 | Frontend test suite | 45 passed, 3 live integration failures, 1 skipped | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
 | Git worktree inspection | README was modified; no unrelated changes observed | **NEEDS MANUAL VERIFICATION** |
@@ -103,6 +103,10 @@ Starlette/httpx stack; they did not fail the suite.
 - `backend/app/main.py` configures FastAPI, CORS, security headers, timing
   headers, health endpoints, OpenAPI metadata, and sanitized exception
   responses.
+- Authentication failures are rate-limited per endpoint, client, and normalized
+  identity, with `429` and `Retry-After` responses.
+- JWT decoding requires signature, expiry, issued-at, subject, and valid role
+  claims; protected requests also match the token role to the current account.
 - API routers are registered for authentication, warehouses, products,
   inventory, drivers, vehicles, shipments, routes, analytics, pipeline, ML,
   assistant, and WebSocket tracking.
@@ -118,7 +122,7 @@ Starlette/httpx stack; they did not fail the suite.
 | Startup seeds demo data automatically | **PARTIALLY COMPLETE** | Retained for local development; production startup no longer seeds demo records |
 | Database transactions and all error paths | **NEEDS MANUAL VERIFICATION** | Unit tests do not replace a clean PostgreSQL workflow test |
 | Pagination and large-list performance | **NEEDS MANUAL VERIFICATION** | Domain endpoints exist, but production-scale query behavior was not measured |
-| Rate limiting and login abuse protection | **MISSING** | No rate-limiting mechanism was verified in the inspected dependencies or source |
+| Rate limiting and login abuse protection | **PARTIALLY COMPLETE** | Failed authentication and duplicate registration attempts are rate-limited in-process; shared storage is still needed for multi-worker deployments |
 | File upload validation/storage | **MISSING** | Required for proof of delivery but no implemented upload workflow was verified |
 | API behavior in a running server | **NEEDS MANUAL VERIFICATION** | Most backend tests use in-process clients; external frontend integration calls were skipped when the server was offline |
 
@@ -220,9 +224,12 @@ production decision support.**
 
 | Concern | Status | Required action |
 |---|---|---|
-| Default development `SECRET_KEY` exists in settings/template | **PARTIALLY COMPLETE** | Fail production startup when a strong secret is not explicitly configured |
-| Demo credentials are available for development seeding | **PARTIALLY COMPLETE** | Ensure seeding is disabled or separately authorized in production |
-| Rate limiting/login abuse protection | **MISSING** | Add a deployment-appropriate limiter and tests |
+| Default development `SECRET_KEY` exists in settings/template | **COMPLETE** | Production startup rejects the default/weak key |
+| Demo credentials are available for development seeding | **COMPLETE** | Production startup does not seed demo records |
+| Production CORS wildcard/local origins | **COMPLETE** | Production validation rejects wildcard and local development origins |
+| JWT claim validation | **COMPLETE** | Signature, expiry, required claims, valid role, and current-user role match are tested |
+| Sensitive exception log leakage | **PARTIALLY COMPLETE** | Common credential forms are redacted and raw tracebacks are not emitted; broader third-party logging still requires deployment verification |
+| Rate limiting/login abuse protection | **PARTIALLY COMPLETE** | Failed authentication and duplicate registration attempts are rate-limited in-process |
 | Dependency vulnerability scan | **NEEDS MANUAL VERIFICATION** | Run a current vulnerability scan in CI or release checks |
 | Token storage in browser localStorage | **NEEDS MANUAL VERIFICATION** | Review XSS threat model; consider a safer session strategy for production |
 | Production CORS and debug settings | **NEEDS MANUAL VERIFICATION** | Verify environment-specific values in deployment |
@@ -263,8 +270,9 @@ prompt requires more than unit/in-process coverage:
   refresh behavior.
 - Test external WebSocket connections and reconnect/error behavior.
 - Test production-like Docker startup with migrations and the ML artifact.
-- Add tests for rate limiting, production configuration rejection, and proof of
-  delivery once implemented.
+- Replace the in-process rate limiter with shared storage for multi-worker
+  deployments.
+- Add tests for proof of delivery once implemented.
 
 ---
 
@@ -278,7 +286,8 @@ prompt requires more than unit/in-process coverage:
 3. Enforce production configuration: strong secret, non-debug mode, explicit
    database URL, and safe CORS.
 4. Run clean PostgreSQL migration and persistence verification.
-5. Add login rate limiting and abuse protection.
+5. Replace the in-process failed-authentication limiter with shared storage for
+   multi-worker deployment.
 
 ### Priority 1 — critical workflow completeness
 
@@ -318,7 +327,7 @@ Follow the master prompt's small-module workflow:
 1. Harden production configuration and split migration/seed responsibilities.
 2. Repair and test the Docker image.
 3. Verify clean PostgreSQL migrations.
-4. Add rate limiting and security tests.
+4. Add shared rate limiting and security tests.
 5. Implement proof of delivery.
 6. Run live end-to-end workflows.
 7. Complete deployment and SPA hosting configuration.

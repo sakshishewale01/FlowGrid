@@ -74,10 +74,12 @@ implementation currently present in the repository, not only the original plan.
   - Shipment CSV export with sensitive-field sanitization
   - Dark/light operational UI styling
 - **Operational hardening**
-  - CORS configuration
+  - Explicit production CORS validation (no wildcard or local origins)
   - Security response headers
   - Request timing headers and structured logging
-  - Sanitized database and unexpected-error responses
+  - Sanitized database and unexpected-error responses/log messages
+  - Argon2 password hashing and validated JWT signature, expiry, subject, and role claims
+  - Failed-authentication rate limiting with `429` responses and `Retry-After`
   - WebSocket authentication, RBAC, and connection limits
 - **Database and migrations**
   - SQLAlchemy 2.x models and repositories
@@ -276,7 +278,7 @@ cd backend
 pytest -v
 ```
 
-The current suite contains **306 collected tests** covering authentication,
+The current suite contains **313 collected tests** covering authentication,
 RBAC, validation, models, CRUD workflows, analytics, shipment transitions,
 tracking, WebSockets, pipeline behavior, and ML inference.
 
@@ -291,7 +293,7 @@ npm run lint
 
 Latest repository verification:
 
-- Backend: **306 tests**, all passing
+- Backend: **313 tests**, all passing
 - Frontend: **49 tests**; the latest run had **45 passed**, **3 failed**, and
   **1 skipped** because an already-running backend contained stale local demo
   state during live integration checks
@@ -468,4 +470,3 @@ FlowGrid/
 - [Product requirements](docs/PRD.md)
 
 ---
-

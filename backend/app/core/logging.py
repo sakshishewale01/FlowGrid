@@ -6,6 +6,7 @@ Ensures sensitive credentials, authorization headers, and tokens are never leake
 """
 
 import logging
+import re
 import sys
 from typing import Any, Dict
 
@@ -21,6 +22,17 @@ SENSITIVE_KEYS = {
     "authorization",
     "credentials",
 }
+
+_BEARER_TOKEN_PATTERN = re.compile(r"(?i)(bearer\s+)[^\s,;]+")
+_SECRET_VALUE_PATTERN = re.compile(
+    r"(?i)((?:password|passwd|secret|token|authorization)\s*[=:]\s*)[^\s,;]+"
+)
+
+
+def sanitize_text_for_logging(value: str) -> str:
+    """Redact common credential and token forms from exception messages."""
+    sanitized = _BEARER_TOKEN_PATTERN.sub(r"\1[REDACTED]", value)
+    return _SECRET_VALUE_PATTERN.sub(r"\1[REDACTED]", sanitized)
 
 
 def sanitize_dict_for_logging(data: Dict[str, Any]) -> Dict[str, Any]:

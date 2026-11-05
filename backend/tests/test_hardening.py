@@ -23,15 +23,50 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 import jwt
 import pytest
-from fastapi import status
+from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
 from app.core.config import settings
+from app.core.logging import sanitize_text_for_logging
+from app.core.rate_limit import auth_rate_limiter
 from app.core.security import create_access_token
 from app.main import app
 
 client = TestClient(app, raise_server_exceptions=False)
+
+
+def test_authentication_rate_limit_enforced(monkeypatch):
+    auth_rate_limiter.clear()
+    monkeypatch.setattr(settings, "auth_rate_limit_requests", 1)
+    monkeypatch.setattr(settings, "auth_rate_limit_window_seconds", 60)
+
+    auth_rate_limiter.check("test-authentication")
+    with pytest.raises(HTTPException) as exc_info:
+        auth_rate_limiter.check("test-authentication")
+
+    assert exc_info.value.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+    assert exc_info.value.headers["Retry-After"]
+    auth_rate_limiter.clear()
+
+
+def test_sensitive_exception_text_is_redacted():
+    sanitized = sanitize_text_for_logging(
+        "password=secret123 authorization=Bearer abc.def.ghi"
+    )
+    assert "secret123" not in sanitized
+    assert "abc.def.ghi" not in sanitized
+
+
+def test_cors_rejects_unconfigured_origin():
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": "https://malicious.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.headers.get("access-control-allow-origin") is None
 
 
 # ==============================================================================
