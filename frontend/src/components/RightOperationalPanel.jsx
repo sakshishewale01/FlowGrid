@@ -6,10 +6,9 @@ import { formatErrorMessage } from '../api/client.js';
  * RightOperationalPanel
  * Matches the reference right-column structure:
  * 1. Immediate Attention Required (actionable alerts)
- * 2. Predict Corridor Delay (ML) (quick entry to ML prediction engine)
- * 3. FlowGrid Assistant (embedded interactive grounded assistant)
+ * 2. FlowGrid Assistant (embedded interactive grounded assistant)
  */
-export default function RightOperationalPanel({ onNavigate, onOpenPredictor }) {
+export default function RightOperationalPanel({ onNavigate }) {
   // Assistant Chat states
   const [messages, setMessages] = useState([
     {
@@ -80,7 +79,7 @@ export default function RightOperationalPanel({ onNavigate, onOpenPredictor }) {
           </div>
           <div className="attention-title-block">
             <h3 className="attention-heading">Immediate Attention Required</h3>
-            <span className="attention-sub">3 shipments need your attention</span>
+            <span className="attention-sub">Review live delay-risk assessments</span>
           </div>
           <button
             type="button"
@@ -92,66 +91,14 @@ export default function RightOperationalPanel({ onNavigate, onOpenPredictor }) {
           </button>
         </div>
 
-        <ul className="attention-list">
-          <li
-            className="attention-item"
-            onClick={() => onNavigate && onNavigate('rescue')}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="attention-bullet" />
-            <span className="attention-text">Unassigned driver (FG-98422)</span>
-          </li>
-          <li
-            className="attention-item"
-            onClick={() => onNavigate && onNavigate('rescue')}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="attention-bullet" />
-            <span className="attention-text">Overloaded cargo (FG-98415)</span>
-          </li>
-          <li
-            className="attention-item"
-            onClick={() => onNavigate && onNavigate('rescue')}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="attention-bullet" />
-            <span className="attention-text">Missing equipment (FG-98407)</span>
-          </li>
-        </ul>
-      </div>
-
-      {/* 2. Predict Corridor Delay (ML) */}
-      <div
-        className="ref-ml-card"
-        onClick={onOpenPredictor}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onOpenPredictor();
-        }}
-        title="Open ML Corridor Delay Predictor"
-      >
-        <div className="ml-card-left">
-          <div className="ml-icon-circle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#38BDF8">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          </div>
-          <div className="ml-card-text">
-            <div className="ml-card-title-row">
-              <span className="ml-card-title">Predict Corridor Delay (ML)</span>
-              <span className="ml-badge-experimental">Experimental</span>
-            </div>
-            <p className="ml-card-caption">Get AI-powered delay probability for any corridor.</p>
-          </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.78rem', lineHeight: 1.4 }}>
+            Use the live heuristic panel below to inspect current shipment risk and dispatch factors.
+          </p>
         </div>
-        <div className="ml-card-arrow">›</div>
       </div>
 
-      {/* 3. FlowGrid Assistant Embedded Panel */}
+      {/* 2. FlowGrid Assistant Embedded Panel */}
       <div className="ref-assistant-panel" aria-label="Embedded FlowGrid Assistant">
         <div className="ref-assistant-header">
           <div className="ref-assistant-bot-avatar">

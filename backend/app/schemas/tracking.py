@@ -118,6 +118,10 @@ class LatestTrackingInfoResponse(BaseModel):
     current_status: ShipmentStatus = Field(..., description="Current operational state")
     destination_city: str = Field(..., description="Delivery destination city")
     destination_state: str = Field(..., description="Delivery destination state")
+    estimated_delivery_at: Optional[datetime] = Field(
+        default=None,
+        description="Promised delivery timestamp",
+    )
     delivered_at: Optional[datetime] = Field(default=None, description="Delivery completion timestamp")
     latest_status_history: Optional[ShipmentStatusHistoryResponse] = Field(
         default=None,

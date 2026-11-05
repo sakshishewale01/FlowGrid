@@ -49,6 +49,34 @@ def generate_unique_tracking_number() -> str:
     return f"FG-{date_str}-{unique_suffix}"
 
 
+def validate_estimated_delivery_at(
+    estimated_delivery_at: Optional[datetime],
+    scheduled_pickup_at: Optional[datetime],
+) -> None:
+    """
+    Ensures a promised delivery timestamp is aware and after the shipment start reference.
+    """
+    if estimated_delivery_at is None:
+        return
+    if (
+        estimated_delivery_at.tzinfo is None
+        or estimated_delivery_at.utcoffset() is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Estimated delivery timestamp must be timezone-aware",
+        )
+
+    start_reference = scheduled_pickup_at or datetime.now(timezone.utc)
+    if start_reference.tzinfo is None or start_reference.utcoffset() is None:
+        start_reference = start_reference.replace(tzinfo=timezone.utc)
+    if estimated_delivery_at <= start_reference:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Estimated delivery timestamp must be later than the shipment start reference",
+        )
+
+
 class ShipmentService:
     """
     Business service managing shipments and lifecycle transitions.
@@ -91,6 +119,11 @@ class ShipmentService:
                 if not self.repository.get_by_tracking_number(db, candidate):
                     normalized_tracking = candidate
                     break
+
+        validate_estimated_delivery_at(
+            payload.estimated_delivery_at,
+            payload.scheduled_pickup_at,
+        )
 
         # 2. Validate Origin Warehouse if provided
         if payload.origin_warehouse_id is not None:
@@ -158,6 +191,7 @@ class ShipmentService:
             total_weight_kg=payload.total_weight_kg,
             total_volume_cbm=payload.total_volume_cbm,
             scheduled_pickup_at=payload.scheduled_pickup_at,
+            estimated_delivery_at=payload.estimated_delivery_at,
             is_active=True,
         )
         created_shipment = self.repository.create(db, shipment)
@@ -249,6 +283,35 @@ class ShipmentService:
             )
 
         update_data = payload.model_dump(exclude_unset=True)
+
+        effective_scheduled_pickup = update_data.get(
+            "scheduled_pickup_at",
+            shipment.scheduled_pickup_at,
+        )
+        effective_estimated_delivery = update_data.get(
+            "estimated_delivery_at",
+            shipment.estimated_delivery_at,
+        )
+        if (
+            "estimated_delivery_at" not in update_data
+            and effective_estimated_delivery is not None
+            and effective_estimated_delivery.tzinfo is None
+        ):
+            effective_estimated_delivery = effective_estimated_delivery.replace(
+                tzinfo=timezone.utc
+            )
+        if (
+            "scheduled_pickup_at" not in update_data
+            and effective_scheduled_pickup is not None
+            and effective_scheduled_pickup.tzinfo is None
+        ):
+            effective_scheduled_pickup = effective_scheduled_pickup.replace(
+                tzinfo=timezone.utc
+            )
+        validate_estimated_delivery_at(
+            effective_estimated_delivery,
+            effective_scheduled_pickup,
+        )
 
         # Validate warehouse if changed
         if "origin_warehouse_id" in update_data and update_data["origin_warehouse_id"] is not None:

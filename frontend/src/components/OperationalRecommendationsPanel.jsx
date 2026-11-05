@@ -256,7 +256,7 @@ export default function OperationalRecommendationsPanel({
             </span>
           </div>
           <p style={{ fontSize: '0.74rem', color: '#94A3B8', margin: '4px 0 0 0' }}>
-            Transparent heuristic rules grounded exclusively in operational database records. Distinct from Random Forest ML.
+            Transparent heuristic rules grounded exclusively in operational database records.
           </p>
         </div>
 

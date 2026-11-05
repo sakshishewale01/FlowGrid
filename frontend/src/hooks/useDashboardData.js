@@ -24,6 +24,7 @@ import {
   shipmentsApi,
   warehousesApi,
 } from '../api/index.js';
+import { formatErrorMessage } from '../api/client.js';
 
 export function useDashboardData() {
   const { isAuthenticated } = useAuth();
@@ -44,6 +45,8 @@ export function useDashboardData() {
   const [vehicleAnalytics, setVehicleAnalytics] = useState(null);
   const [delayRiskSummary, setDelayRiskSummary] = useState(null);
   const [delayRiskShipments, setDelayRiskShipments] = useState([]);
+  const [delayRiskLoading, setDelayRiskLoading] = useState(true);
+  const [delayRiskError, setDelayRiskError] = useState(null);
 
   const isMountedRef = useRef(true);
 
@@ -86,6 +89,7 @@ export function useDashboardData() {
   const loadData = useCallback(async (isManualRefresh = false) => {
     if (!isAuthenticated) {
       setLoading(false);
+      setDelayRiskLoading(false);
       return;
     }
 
@@ -324,7 +328,9 @@ export function useDashboardData() {
             ? `${Number(s.total_weight_kg).toLocaleString()} kg`
             : '—';
 
-          let etaText = 'On Schedule';
+          let etaText = s.estimated_delivery_at
+            ? `ETA ${new Date(s.estimated_delivery_at).toLocaleString()}`
+            : 'ETA unavailable';
           if (s.status === 'DELIVERED') {
             etaText = s.delivered_at
               ? `Delivered ${new Date(s.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
@@ -388,6 +394,11 @@ export function useDashboardData() {
         const dr = delayRiskRes.value;
         setDelayRiskSummary(dr.summary || null);
         setDelayRiskShipments(dr.shipments || []);
+        setDelayRiskError(null);
+      } else if (delayRiskRes.status === 'rejected') {
+        setDelayRiskSummary(null);
+        setDelayRiskShipments([]);
+        setDelayRiskError(formatErrorMessage(delayRiskRes.reason));
       }
 
       // Check if all primary queries failed
@@ -403,6 +414,7 @@ export function useDashboardData() {
       if (isMountedRef.current) {
         setLoading(false);
         setRefreshing(false);
+        setDelayRiskLoading(false);
       }
     }
   }, [isAuthenticated]);
@@ -426,6 +438,8 @@ export function useDashboardData() {
     vehicleAnalytics,
     delayRiskSummary,
     delayRiskShipments,
+    delayRiskLoading,
+    delayRiskError,
     refetch: () => loadData(true),
   };
 }

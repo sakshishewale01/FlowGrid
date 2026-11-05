@@ -15,8 +15,7 @@ import LiveShipmentFlowMap from './components/LiveShipmentFlowMap';
 import ReferenceRecentShipments from './components/ReferenceRecentShipments';
 import FeatureShortcutCards from './components/FeatureShortcutCards';
 import RightOperationalPanel from './components/RightOperationalPanel';
-import ModelDisclaimerBar from './components/ModelDisclaimerBar';
-import DelayPredictionModal from './components/DelayPredictionModal';
+import AiInsightPanel from './components/AiInsightPanel';
 import ShipmentDetailDrawer from './components/ShipmentDetailDrawer';
 import OperationalRecommendationsPanel from './components/OperationalRecommendationsPanel';
 import NewShipmentModal from './components/NewShipmentModal';
@@ -96,7 +95,6 @@ function AppContent() {
   const [actionNotice, setActionNotice] = useState(null);
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isPredictorModalOpen, setIsPredictorModalOpen] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState(null);
 
   // Live Dashboard Data Hook
@@ -113,6 +111,8 @@ function AppContent() {
     inventorySummary,
     delayRiskSummary,
     delayRiskShipments,
+    delayRiskLoading,
+    delayRiskError,
     refetch: refetchDashboardData,
   } = useDashboardData();
 
@@ -363,17 +363,23 @@ function AppContent() {
 
                     {/* Lower Row: 4 Feature Shortcut Cards */}
                     <FeatureShortcutCards onNavigate={navigate} />
+                    <AiInsightPanel
+                      delayRiskSummary={delayRiskSummary}
+                      delayRiskShipments={delayRiskShipments}
+                      loading={delayRiskLoading}
+                      error={delayRiskError}
+                      onNavigate={navigate}
+                      onRunAudit={refetchDashboardData}
+                    />
                   </div>
 
                   {/* Right-Side Operational Column */}
                   <RightOperationalPanel
                     onNavigate={navigate}
-                    onOpenPredictor={() => setIsPredictorModalOpen(true)}
                   />
                 </div>
 
                 {/* Bottom Transparent ML Model Disclaimer Bar */}
-                <ModelDisclaimerBar />
               </div>
             )}
           </main>
@@ -407,12 +413,6 @@ function AppContent() {
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         onNavigate={navigate}
-      />
-
-      {/* ML Corridor Delay Predictor Modal */}
-      <DelayPredictionModal
-        isOpen={isPredictorModalOpen}
-        onClose={() => setIsPredictorModalOpen(false)}
       />
 
       {/* Shipment Detail Drawer */}

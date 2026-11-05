@@ -112,6 +112,10 @@ class Shipment(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    estimated_delivery_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     delivered_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

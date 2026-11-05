@@ -109,6 +109,10 @@ class ShipmentBase(BaseModel):
         default=None,
         description="Scheduled pickup window timestamp",
     )
+    estimated_delivery_at: Optional[datetime] = Field(
+        default=None,
+        description="Promised delivery timestamp",
+    )
 
     @field_validator(
         "destination_address",
@@ -137,7 +141,6 @@ class ShipmentBase(BaseModel):
             raise ValueError("Scheduled pickup timestamp cannot be earlier than year 2020")
         return v
 
-
 class ShipmentCreate(ShipmentBase):
     """
     Payload for creating a new shipment.
@@ -161,6 +164,16 @@ class ShipmentCreate(ShipmentBase):
             return cleaned.upper()
         return v
 
+    @field_validator("estimated_delivery_at", mode="after")
+    @classmethod
+    def validate_estimated_delivery_timezone(
+        cls,
+        v: Optional[datetime],
+    ) -> Optional[datetime]:
+        if v is not None and (v.tzinfo is None or v.utcoffset() is None):
+            raise ValueError("Estimated delivery timestamp must be timezone-aware")
+        return v
+
 
 class ShipmentUpdate(BaseModel):
     """
@@ -177,6 +190,7 @@ class ShipmentUpdate(BaseModel):
     total_weight_kg: Optional[Decimal] = Field(default=None, gt=0, le=100000)
     total_volume_cbm: Optional[Decimal] = Field(default=None, gt=0, le=1000)
     scheduled_pickup_at: Optional[datetime] = None
+    estimated_delivery_at: Optional[datetime] = None
 
     @field_validator(
         "destination_address",
@@ -205,7 +219,15 @@ class ShipmentUpdate(BaseModel):
             raise ValueError("Scheduled pickup timestamp cannot be earlier than year 2020")
         return v
 
-
+    @field_validator("estimated_delivery_at", mode="after")
+    @classmethod
+    def validate_estimated_delivery_timezone(
+        cls,
+        v: Optional[datetime],
+    ) -> Optional[datetime]:
+        if v is not None and (v.tzinfo is None or v.utcoffset() is None):
+            raise ValueError("Estimated delivery timestamp must be timezone-aware")
+        return v
 
 class ShipmentStatusUpdate(BaseModel):
     """
@@ -234,6 +256,10 @@ class ShipmentResponse(ShipmentBase):
     tracking_number: str = Field(..., description="Unique human-readable tracking number")
     status: ShipmentStatus = Field(..., description="Current lifecycle state")
     delivered_at: Optional[datetime] = Field(default=None, description="Delivery completion timestamp")
+    estimated_delivery_at: Optional[datetime] = Field(
+        default=None,
+        description="Promised delivery timestamp",
+    )
     is_active: bool = Field(..., description="Active operational record status")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last modification timestamp")

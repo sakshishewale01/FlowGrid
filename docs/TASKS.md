@@ -11,12 +11,12 @@
 ## 🎯 Next Recommended Task
 
 > [!IMPORTANT]
-> **TOP PRIORITY NEXT TASK: `TASK-DATA-01` (Add `estimated_delivery_at` Column & Milestone Enrichment)**
+> **TOP PRIORITY NEXT TASK: `TASK-DATA-02` (Enrich Demo Milestones & Route Links)**
 >
 > **Why this must come first:**  
 > The comprehensive dataset and AI readiness audit (`docs/ai_readiness_and_dataset_audit.md`) established that 100% of statistical ML capabilities (continuous ETA regression and binary delay classification) are **hard-blocked** because the database currently contains **zero historical records with populated delivery durations or delay targets**. Furthermore, the `Shipment` database model lacks an `estimated_delivery_at` column, and initial demo fixtures generated zero rows in `shipment_status_history` and `route_shipments`.
 >
-> Adding `estimated_delivery_at` via an Alembic migration and enriching seed/operational dispatches with authentic milestone timestamps will unblock Phase C (Operational Data Reliability), enable genuine baseline analytics benchmarking, and create the prerequisite data foundation for Phase D (ETA Prediction).
+> The nullable `estimated_delivery_at` field is now available; enriching seed/operational dispatches with authentic milestone timestamps is the remaining prerequisite for Phase C (Operational Data Reliability), genuine baseline analytics benchmarking, and Phase D (ETA Prediction).
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 1. Project Status Summary
 
-FlowGrid has reached a robust, production-grade **Operational Baseline**. The decoupled monolith architecture features an enterprise-grade backend with 278 automated pytest tests and an interactive React 19 frontend with 43 automated tests.
+FlowGrid has reached a robust, production-grade **Operational Baseline**. The decoupled monolith architecture features an enterprise-grade backend with 302 automated pytest tests and an interactive React 19 frontend with 49 automated tests.
 
 ### Status Indicators Legend:
 - `[x]` **Completed & Verified**: Fully implemented in code, passing automated tests, operational in UI.
@@ -64,7 +64,7 @@ FlowGrid has reached a robust, production-grade **Operational Baseline**. The de
 | **Delay Risk Engine** | Deterministic 0–100 heuristic scoring, factor breakdown, UI integration | 20 tests in `test_delay_risk.py` | `[x]` |
 | **AI Data Pipeline** | PII redaction, feature engineering, chronological train/test split | 9 tests in `test_ml_pipeline.py` | `[x]` |
 | **Security & Hardening** | Security headers, request timing, sanitized exception handlers | 8 tests in `test_hardening.py` | `[x]` |
-| **Frontend Operations UI**| React 19, custom routing, Leaflet mapping, high-density drawer | 43 tests in `frontend/tests/*.test.js` | `[x]` |
+| **Frontend Operations UI**| React 19, custom routing, Leaflet mapping, high-density drawer, live delay-risk panel | 49 tests in `frontend/tests/*.test.js` | `[x]` |
 
 ---
 
@@ -142,16 +142,10 @@ FlowGrid has reached a robust, production-grade **Operational Baseline**. The de
 
 ## 7. Known Technical Debt, Bugs & Risks
 
-1. **Missing `estimated_delivery_at` Column on `Shipment`**:
-   - *Debt*: Current schema lacks an explicit ETA timestamp column on `Shipment`, forcing reliance on static route durations.
-   - *Risk*: High; prevents comparing promised vs. actual arrival times on individual shipments.
-2. **Empty History Audit Trail in Initial Demo Seed**:
+1. **Empty History Audit Trail in Initial Demo Seed**:
    - *Debt*: `seed_demo_data.py` created 6 shipments directly via SQL insert without creating corresponding rows in `shipment_status_history` or `route_shipments`.
    - *Risk*: Causes delay risk scoring and ML feature extraction to report 100% missing milestone timestamps.
-3. **Fictional UI Copy in `mockLogisticsData.js`**:
-   - *Debt*: Displays text claiming *"scikit-learn gradient boosting trained on 42k historical legs with 96.4% precision"*.
-   - *Risk*: Misleads users regarding data readiness.
-4. **Starlette Deprecation Warnings in Pytest**:
+2. **Starlette Deprecation Warnings in Pytest**:
    - *Debt*: `fastapi.testclient` issues deprecation warnings regarding `httpx` imports in starlette.
    - *Risk*: Low; cosmetic test output noise.
 
@@ -172,9 +166,9 @@ FlowGrid has reached a robust, production-grade **Operational Baseline**. The de
 - [x] **`B.5`**: Ensure transparent non-probability labeling (`is_calibrated_probability = False`).
 
 ### Phase C: Reliable Operational Data & Milestone Enrichment (Immediate Next Phase)
-- [ ] **`TASK-DATA-01`**: Create Alembic migration adding `estimated_delivery_at: Optional[datetime]` to `shipments` table.
+- [x] **`TASK-DATA-01`**: Create Alembic migration adding nullable, timezone-aware `estimated_delivery_at: Optional[datetime]` to `shipments` table.
 - [ ] **`TASK-DATA-02`**: Update `seed_demo_data.py` to populate realistic `ShipmentStatusHistory` transitions (`PICKED_UP`, `IN_TRANSIT`, `DELIVERED`) and link shipments to routes via `route_shipments`.
-- [ ] **`TASK-DATA-03`**: Clean up prototype marketing copy in `mockLogisticsData.js`, replacing it with live `/api/v1/analytics/delay-risk` summaries.
+- [x] **`TASK-DATA-03`**: Remove fictional UI copy and use live `/api/v1/analytics/delay-risk` data with heuristic labeling and UX states.
 - [ ] **`TASK-DATA-04`**: Verify dataset export via CLI (`scripts/export_ml_dataset.py`) yields non-zero target variables for delivered loads.
 
 ### Phase D: Baseline Benchmarking & ETA Estimation
@@ -203,7 +197,7 @@ A task or feature in FlowGrid is considered **Done** only when:
 1. **Code Complete**: Fully implemented adhering to layered architecture (`Routers -> Services -> Repositories -> Models`).
 2. **Type Safe**: 100% Python type hints and Pydantic validation schemas.
 3. **Database Governed**: Any schema alteration includes an explicit, tested Alembic migration script.
-4. **Tested**: Automated tests added/updated; all 278 backend tests and 43 frontend tests pass with zero regressions.
+4. **Tested**: Automated tests added/updated; 302 backend tests and 49 frontend tests are executed in the verification suite.
 5. **Role Protected**: Enforces RBAC permissions via `require_roles()`.
 6. **Documented**: Updated in `TASKS.md`, `ARCHITECTURE.md`, `RULES.md`, and `MEMORY.md`.
 7. **No Hardcoded Secrets**: Credentials loaded strictly via environment variables.
@@ -224,7 +218,6 @@ Before submitting code changes:
 
 ## 11. Suggested Immediate Next Steps
 
-1. **Step 1**: Execute **`TASK-DATA-01`**: Generate Alembic migration to add `estimated_delivery_at` column to `shipments`.
-2. **Step 2**: Execute **`TASK-DATA-02`**: Update `seed_demo_data.py` to create audit trails and route allocations.
-3. **Step 3**: Re-run `scripts/export_ml_dataset.py` and verify `data_quality_report.json` reflects populated milestone targets.
-4. **Step 4**: Replace fictional mock UI copy in `mockLogisticsData.js` with live delay-risk API data.
+1. **Step 1**: Execute **`TASK-DATA-02`**: Update `seed_demo_data.py` to create authentic audit trails and route allocations.
+2. **Step 2**: Re-run `scripts/export_ml_dataset.py` and verify `data_quality_report.json` reflects populated milestone targets.
+3. **Step 3**: Proceed to **`TASK-DATA-04`** dataset export verification.

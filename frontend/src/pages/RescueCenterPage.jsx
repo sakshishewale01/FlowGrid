@@ -10,7 +10,6 @@ import DataTable from '../components/DataTable';
 import EmptyState from '../components/EmptyState';
 import StatusBadge from '../components/StatusBadge';
 import ShipmentDetailDrawer from '../components/ShipmentDetailDrawer';
-import DelayPredictionModal from '../components/DelayPredictionModal';
 import OperationalRecommendationsPanel from '../components/OperationalRecommendationsPanel';
 import { useToast } from '../context/ToastContext';
 
@@ -123,7 +122,6 @@ export default function RescueCenterPage({ onNavigate }) {
   // Drawers & Modals
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isMlModalOpen, setIsMlModalOpen] = useState(false);
 
   // Fetch actual operational data
   const fetchData = useCallback(async () => {
@@ -378,10 +376,6 @@ export default function RescueCenterPage({ onNavigate }) {
           { label: 'Unassigned Vehicles', value: missingVehiclesCount, status: missingVehiclesCount > 0 ? 'warning' : 'online' },
           { label: 'Unassigned Routes', value: missingRoutesCount, status: missingRoutesCount > 0 ? 'warning' : 'online' },
         ]}
-        primaryAction={{
-          label: 'Run Corridor ML Predictor',
-          onClick: () => setIsMlModalOpen(true),
-        }}
       >
         <button
           type="button"
@@ -421,23 +415,15 @@ export default function RescueCenterPage({ onNavigate }) {
           <span style={{ fontSize: '1.25rem' }}>🛡️</span>
           <div>
             <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#E2E8F0' }}>
-              Dual Risk Engine: Operational Heuristics vs. ML Benchmark Model
+              Live heuristic risk engine
             </div>
             <div style={{ fontSize: '0.74rem', color: '#94A3B8' }}>
-              • <strong>Operational Rules (0–100):</strong> Grounded in live PostgreSQL records (driver/vehicle/route allocation and capacity).
+              <strong>Operational Rules (0–100):</strong> Grounded in live database records (driver/vehicle/route allocation and capacity).
               <br />
-              • <strong>Machine Learning (Random Forest):</strong> Evaluates freight corridor delay probability from synthetic benchmark training data.
+              <strong>Rule-based, not a calibrated probability:</strong> Scores are not trained-model predictions.
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          className="btn-action outline"
-          style={{ fontSize: '0.72rem', padding: '4px 10px', borderColor: '#38BDF8', color: '#38BDF8' }}
-          onClick={() => setIsMlModalOpen(true)}
-        >
-          ✦ Test ML Predictor
-        </button>
       </div>
 
       {error && (
@@ -550,11 +536,6 @@ export default function RescueCenterPage({ onNavigate }) {
         />
       )}
 
-      {/* ML Delay Prediction Modal */}
-      <DelayPredictionModal
-        isOpen={isMlModalOpen}
-        onClose={() => setIsMlModalOpen(false)}
-      />
     </div>
   );
 }

@@ -30,7 +30,7 @@
 | **Data Validation** | Pydantic v2 | `pydantic (>=2.6.0)`, `pydantic-settings` |
 | **Machine Learning**| Scikit-Learn | `scikit-learn (>=1.4.0)`, `joblib`, Random Forest Pipeline |
 | **Frontend Stack** | React 18/19 SPA + Vite | React (`^19.2.8`), Vite (`^8.3.0`), Leaflet (`^1.9.4`), Vanilla CSS |
-| **Test Suites** | Node.js Test Runner & Pytest | `node --test` (46 frontend tests), `pytest` (backend test suite) |
+| **Test Suites** | Node.js Test Runner & Pytest | `node --test` (49 frontend tests), `pytest` (backend test suite) |
 
 ---
 
@@ -64,7 +64,7 @@ FlowGrid/
 │   │   ├── App.jsx           # App shell, client router & Control Tower dashboard
 │   │   ├── index.css         # Design tokens, Dark (#0B1220) & Light (#F1F5F9) themes
 │   │   └── main.jsx          # React DOM entrypoint
-│   ├── tests/                # 46 automated frontend unit & integration tests
+│   ├── tests/                # 49 automated frontend unit & integration tests
 │   └── package.json          # Node scripts and dependencies
 │
 └── docs/                     # Authoritative documentation (PRD, ARCHITECTURE, DESIGN, RULES)
@@ -137,7 +137,7 @@ npm install
 # Run Vite development server
 npm run dev
 
-# Run automated frontend test suite (46 tests)
+# Run automated frontend test suite (49 tests)
 npm test
 
 # Production bundle build
@@ -149,3 +149,8 @@ npm run build
 - **Manager**: `manager@flowgrid.io` / `FlowGrid2026!`
 - **Driver**: `driver@flowgrid.io` / `FlowGrid2026!`
 - **Viewer**: `viewer@flowgrid.io` / `FlowGrid2026!`
+
+## 7. Recent Data and UI Governance Changes
+
+- `Shipment.estimated_delivery_at` is an optional timezone-aware promised-delivery timestamp added by Alembic revision `a1c2d3e4f5a6`; it must follow the shipment start reference and is immutable in terminal states.
+- Delay-risk dashboard and operational views now read live `/api/v1/analytics/delay-risk` data and label scores as rule-based, not calibrated probabilities.

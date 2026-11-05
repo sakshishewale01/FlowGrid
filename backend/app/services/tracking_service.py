@@ -133,6 +133,7 @@ class TrackingService:
             current_status=shipment.status,
             destination_city=shipment.destination_city,
             destination_state=shipment.destination_state,
+            estimated_delivery_at=shipment.estimated_delivery_at,
             delivered_at=shipment.delivered_at,
             latest_status_history=history_response,
             latest_tracking_event=event_response,

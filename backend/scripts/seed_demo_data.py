@@ -117,22 +117,30 @@ def seed_demo_data():
             db.commit()
             print("Seeded 5 Inventory stock records.")
 
-        # 4. Driver Users & Driver Profiles
-        driver_user = db.query(User).filter(User.email == "driver@flowgrid.io").first()
-        if not driver_user:
-            driver_user = User(
-                name="Alex Rivera",
-                email="driver@flowgrid.io",
-                hashed_password=get_password_hash("DriverPass123!"),
-                role=UserRole.DRIVER,
-                is_active=True,
-            )
-            db.add(driver_user)
-            db.commit()
-            db.refresh(driver_user)
+        # 4. Demo Operational Users & Driver Profiles
+        demo_accounts = [
+            ("admin@flowgrid.io", "System Administrator", "AdminPass123!", UserRole.ADMIN),
+            ("manager@flowgrid.io", "Operations Manager", "ManagerPass123!", UserRole.MANAGER),
+            ("driver@flowgrid.io", "Alex Rivera", "DriverPass123!", UserRole.DRIVER),
+            ("viewer@flowgrid.io", "Logistics Auditor", "ViewerPass123!", UserRole.VIEWER),
+        ]
+        for email, name, pwd, role in demo_accounts:
+            existing = db.query(User).filter(User.email == email).first()
+            if not existing:
+                u = User(
+                    name=name,
+                    email=email,
+                    hashed_password=get_password_hash(pwd),
+                    role=role,
+                    is_active=True,
+                )
+                db.add(u)
+                db.commit()
+                print(f"Seeded User: {email} ({role.value})")
 
-        driver_rec = db.query(Driver).filter(Driver.user_id == driver_user.id).first()
-        if not driver_rec:
+        driver_user = db.query(User).filter(User.email == "driver@flowgrid.io").first()
+        driver_rec = db.query(Driver).filter(Driver.user_id == driver_user.id).first() if driver_user else None
+        if driver_user and not driver_rec:
             driver_rec = Driver(
                 user_id=driver_user.id,
                 license_number="CDL-IL-984210",

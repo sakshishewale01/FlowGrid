@@ -18,6 +18,7 @@ Comprehensive test suite validating:
 """
 
 import pytest
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -152,6 +153,136 @@ def test_create_shipment_as_admin(client, admin_headers, active_warehouse):
     assert data["is_active"] is True
     assert "id" in data
     assert "created_at" in data
+
+
+def test_create_shipment_with_estimated_delivery_at_is_persisted_and_returned(
+    client,
+    admin_headers,
+):
+    scheduled = datetime.now(timezone.utc) + timedelta(hours=1)
+    estimated = scheduled + timedelta(hours=8)
+    response = client.post(
+        "/api/v1/shipments",
+        json={
+            **SAMPLE_SHIPMENT,
+            "scheduled_pickup_at": scheduled.isoformat(),
+            "estimated_delivery_at": estimated.isoformat(),
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["estimated_delivery_at"] is not None
+
+    shipment_id = response.json()["id"]
+    detail = client.get(
+        f"/api/v1/shipments/{shipment_id}",
+        headers=admin_headers,
+    )
+    listing = client.get("/api/v1/shipments", headers=admin_headers)
+    assert detail.json()["estimated_delivery_at"] is not None
+    assert listing.json()[0]["estimated_delivery_at"] is not None
+
+
+def test_create_shipment_without_estimated_delivery_at_is_backward_compatible(
+    client,
+    admin_headers,
+):
+    response = client.post(
+        "/api/v1/shipments",
+        json=SAMPLE_SHIPMENT,
+        headers=admin_headers,
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["estimated_delivery_at"] is None
+
+
+@pytest.mark.parametrize(
+    "estimated_offset",
+    [timedelta(hours=-1), timedelta(0)],
+)
+def test_create_shipment_rejects_estimated_delivery_at_not_after_start(
+    client,
+    admin_headers,
+    estimated_offset,
+):
+    scheduled = datetime.now(timezone.utc) + timedelta(hours=2)
+    response = client.post(
+        "/api/v1/shipments",
+        json={
+            **SAMPLE_SHIPMENT,
+            "scheduled_pickup_at": scheduled.isoformat(),
+            "estimated_delivery_at": (scheduled + estimated_offset).isoformat(),
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "later than the shipment start reference" in response.json()["detail"]
+
+
+def test_create_shipment_rejects_naive_estimated_delivery_at(client, admin_headers):
+    response = client.post(
+        "/api/v1/shipments",
+        json={
+            **SAMPLE_SHIPMENT,
+            "estimated_delivery_at": "2027-01-01T12:00:00",
+        },
+        headers=admin_headers,
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert "timezone-aware" in str(response.json())
+
+
+def test_update_estimated_delivery_at_and_terminal_immutability(
+    client,
+    admin_headers,
+    manager_headers,
+):
+    shipment = client.post(
+        "/api/v1/shipments",
+        json=SAMPLE_SHIPMENT,
+        headers=admin_headers,
+    ).json()
+    estimated = datetime.now(timezone.utc) + timedelta(days=1)
+    update = client.patch(
+        f"/api/v1/shipments/{shipment['id']}",
+        json={"estimated_delivery_at": estimated.isoformat()},
+        headers=manager_headers,
+    )
+    assert update.status_code == status.HTTP_200_OK
+    assert update.json()["estimated_delivery_at"] is not None
+
+    client.patch(
+        f"/api/v1/shipments/{shipment['id']}/status",
+        json={"status": "CANCELLED"},
+        headers=admin_headers,
+    )
+    terminal_update = client.patch(
+        f"/api/v1/shipments/{shipment['id']}",
+        json={"estimated_delivery_at": (estimated + timedelta(hours=1)).isoformat()},
+        headers=manager_headers,
+    )
+    assert terminal_update.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_driver_and_viewer_cannot_set_estimated_delivery_at(
+    client,
+    admin_headers,
+    driver_headers,
+    viewer_headers,
+):
+    shipment = client.post(
+        "/api/v1/shipments",
+        json=SAMPLE_SHIPMENT,
+        headers=admin_headers,
+    ).json()
+    estimated = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    for headers in (driver_headers, viewer_headers):
+        response = client.patch(
+            f"/api/v1/shipments/{shipment['id']}",
+            json={"estimated_delivery_at": estimated},
+            headers=headers,
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_create_shipment_as_manager(client, manager_headers):

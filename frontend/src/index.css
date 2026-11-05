@@ -5141,7 +5141,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Predict Corridor Delay Card */
 .ref-ml-card {
   background: linear-gradient(135deg, rgba(30, 58, 138, 0.35) 0%, rgba(17, 29, 50, 0.95) 100%);
   border: 1px solid rgba(56, 189, 248, 0.3);

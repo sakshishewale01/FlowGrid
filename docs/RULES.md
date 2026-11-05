@@ -145,6 +145,8 @@ Under no operational circumstances may freight weight exceed the assigned vehicl
    Every record in `shipment_tracking_events` records an explicit ISO timestamp and records the creating user's ID.
 3. **[CRITICAL INVARIANT] Never Substitute Timestamps**:
    Never substitute scheduled timestamps (`scheduled_pickup_at`) for actual event timestamps (`actual_pickup_timestamp`). If an actual milestone has not occurred, the field must remain `None` / `null`. Substituting scheduled dates corrupts duration metrics and introduces catastrophic data leakage.
+4. **[ENFORCED] Promised Delivery Timestamp**:
+   `estimated_delivery_at`, when provided, must be timezone-aware and strictly later than the shipment start reference (`scheduled_pickup_at`, or the current UTC time when no schedule exists). It is nullable for backward compatibility and is immutable for `DELIVERED`, `CANCELLED`, and `RETURNED` shipments.
 
 ---
 
@@ -261,7 +263,9 @@ UserRole.VIEWER   # Read-only stakeholder and auditor
    - Target variables must NEVER be computed from data or status remarks logged after dispatch.
 3. **[CRITICAL] No Fictional Model Claims**:
    Never display fictional marketing claims (such as *"gradient boosting regression trained on 42k legs with 96.4% precision"*) in production UI. Acknowledge real operational data readiness honestly.
-4. **[CRITICAL] Chronological Partitioning**:
+4. **[CRITICAL] Honest Operational UI**:
+   The UI must never display unverifiable AI/ML claims, fabricated metrics, trained-record counts, precision/accuracy/confidence percentages, or fake prediction results. Delay-risk scores must be sourced from the live endpoint and labeled as rule-based, not calibrated probabilities.
+5. **[CRITICAL] Chronological Partitioning**:
    Train/test splits must be partitioned chronologically by creation timestamp, never randomly shuffled, to prevent temporal lookahead leakage.
 
 ---

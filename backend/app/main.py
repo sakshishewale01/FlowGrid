@@ -7,6 +7,7 @@ and modular sub-routers.
 """
 
 import time
+from contextlib import asynccontextmanager
 from typing import Dict, Any
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.db.session import check_db_connection
+from app.db.session import check_db_connection, ensure_db_tables_and_seed
 from app.api.v1.api import api_router
 
 # ------------------------------------------------------------------------------
@@ -94,6 +95,20 @@ OPENAPI_TAGS = [
     },
 ]
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan context manager:
+    Ensures database tables are created and demo operational seed data is populated
+    on application startup, preventing database missing-table or missing-user errors.
+    """
+    try:
+        ensure_db_tables_and_seed()
+        logger.info("Database initialized and demo accounts verified.")
+    except Exception as exc:
+        logger.warning("Startup database check encountered notice: %s", exc)
+    yield
+
 # ------------------------------------------------------------------------------
 # 3. FastAPI Application Initialization
 # ------------------------------------------------------------------------------
@@ -104,6 +119,7 @@ app = FastAPI(
     openapi_tags=OPENAPI_TAGS,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
     contact={
         "name": "FlowGrid Engineering",
         "url": "https://github.com/sakshishewale01/FlowGrid",

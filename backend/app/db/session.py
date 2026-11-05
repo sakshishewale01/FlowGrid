@@ -22,17 +22,42 @@ from app.core.logging import get_logger
 logger = get_logger("db")
 
 # ------------------------------------------------------------------------------
-# 1. SQLAlchemy Synchronous Engine
+# 1. SQLAlchemy Synchronous Engine with Intelligent Development Fallback
 # ------------------------------------------------------------------------------
-# - pool_pre_ping=True: Validates connection health before issuing queries.
-# - connect_args={"connect_timeout": 3}: Fails fast (3s) if PostgreSQL is offline
-#   rather than blocking on operating system socket timeouts.
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    echo=False,
-    connect_args={"connect_timeout": 3},
-)
+def _build_engine():
+    db_url = settings.database_url
+    if db_url.startswith("sqlite"):
+        return create_engine(
+            db_url,
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+
+    # For PostgreSQL: test connection with fast failover (3s timeout)
+    try:
+        pg_engine = create_engine(
+            db_url,
+            pool_pre_ping=True,
+            echo=False,
+            connect_args={"connect_timeout": 3},
+        )
+        with pg_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        logger.info("Connected successfully to PostgreSQL database.")
+        return pg_engine
+    except Exception as exc:
+        logger.warning(
+            "PostgreSQL database connection failed (%s). "
+            "Automatically falling back to local SQLite database (flowgrid_dev.db) for uninterrupted operation.",
+            exc,
+        )
+        return create_engine(
+            "sqlite:///flowgrid_dev.db",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+
+engine = _build_engine()
 
 # ------------------------------------------------------------------------------
 # 2. Session Factory
@@ -42,6 +67,21 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine,
 )
+
+
+def ensure_db_tables_and_seed():
+    """
+    Ensures database tables exist and essential demo accounts are seeded.
+    Called automatically on application startup.
+    """
+    try:
+        from app.db.base import Base
+        import app.models  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+        from scripts.seed_demo_data import seed_demo_data
+        seed_demo_data()
+    except Exception as exc:
+        logger.warning("Database schema check / seeding notice: %s", exc)
 
 
 # ------------------------------------------------------------------------------

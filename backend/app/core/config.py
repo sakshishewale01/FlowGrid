@@ -82,9 +82,12 @@ class Settings(BaseSettings):
         Ensures the database URL is formatted with the modern psycopg (v3) dialect.
         If a standard postgresql:// or postgres:// URL is passed in .env,
         it is automatically adapted to postgresql+psycopg:// for SQLAlchemy 2.0.
+        Also automatically sanitizes placeholder passwords left in .env.
         """
         if isinstance(value, str):
             value = value.strip()
+            if "YOUR_STRONG_PASSWORD" in value:
+                value = value.replace("YOUR_STRONG_PASSWORD", "postgres")
             if value.startswith("postgres://"):
                 return value.replace("postgres://", "postgresql+psycopg://", 1)
             if value.startswith("postgresql://") and not value.startswith("postgresql+"):

@@ -1,6 +1,8 @@
-~# FlowGrid 🚚
+# FlowGrid 🚚
 
 ### Intelligent Logistics & Supply Chain Management Platform
+
+> 🚀 **Teammates & New Contributors**: Check out the quick [**Team Onboarding & Setup Guide (TEAM_GUIDE.md)**](./TEAM_GUIDE.md) to get the app running on your laptop in 5 minutes!
 
 FlowGrid is a full-stack logistics and supply chain management platform designed to improve operational efficiency, shipment visibility, warehouse management, inventory tracking, and delivery coordination.
 

@@ -5,16 +5,22 @@ import React from 'react';
  * Features box, clock, alert triangle, and truck icons with clean typography and sparklines.
  */
 export default function ReferenceKpiCards({ overview, delayRiskSummary, onNavigate }) {
-  const totalShipments = overview?.total_shipments ? Number(overview.total_shipments).toLocaleString() : '1,248';
-  const atRiskCount = delayRiskSummary?.high_risk_count ?? 48;
-  const activeFleet = overview?.total_drivers ? (overview.total_drivers * 8 + 42) : '186';
+  const totalShipments = overview?.total_shipments !== undefined
+    ? Number(overview.total_shipments).toLocaleString()
+    : '—';
+  const atRiskCount = delayRiskSummary
+    ? String((delayRiskSummary.high_risk_count || 0) + (delayRiskSummary.critical_risk_count || 0))
+    : '—';
+  const activeFleet = overview?.total_drivers !== undefined
+    ? String(overview.total_drivers)
+    : '—';
 
   const cards = [
     {
       id: 'shipments',
       label: 'Total Shipments',
       value: totalShipments,
-      trend: '↑ 12%',
+      trend: 'Live',
       trendText: 'vs. last 7 days',
       trendClass: 'trend-success',
       iconType: 'box',
@@ -27,8 +33,12 @@ export default function ReferenceKpiCards({ overview, delayRiskSummary, onNaviga
     {
       id: 'on_time',
       label: 'On Time Delivery',
-      value: '92.4%',
-      trend: '↑ 3.2%',
+      value: overview?.on_time_delivery_rate !== undefined
+        ? `${overview.on_time_delivery_rate}%`
+        : '—',
+      trend: overview?.on_time_delivery_rate !== undefined
+        ? `${overview.on_time_delivery_rate}%`
+        : 'Live',
       trendText: 'vs. last 7 days',
       trendClass: 'trend-cyan',
       iconType: 'clock',
@@ -42,7 +52,7 @@ export default function ReferenceKpiCards({ overview, delayRiskSummary, onNaviga
       id: 'at_risk',
       label: 'At Risk Shipments',
       value: String(atRiskCount),
-      trend: '↓ 18%',
+      trend: 'Live',
       trendText: 'vs. last 7 days',
       trendClass: 'trend-warning',
       iconType: 'alert',
@@ -56,7 +66,7 @@ export default function ReferenceKpiCards({ overview, delayRiskSummary, onNaviga
       id: 'active_fleet',
       label: 'Active Fleet',
       value: String(activeFleet),
-      trend: '↑ 6%',
+      trend: 'Live',
       trendText: 'vs. last 7 days',
       trendClass: 'trend-purple',
       iconType: 'truck',

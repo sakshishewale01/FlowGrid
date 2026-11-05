@@ -6,6 +6,7 @@ export default function AiInsightPanel({
   onRunAudit = null,
   onNavigate = null,
   loading = false,
+  error = null,
 }) {
   const avgScore = delayRiskSummary
     ? Math.round(delayRiskSummary.average_risk_score)
@@ -78,8 +79,17 @@ export default function AiInsightPanel({
       </div>
 
       <div style={{ padding: '0 16px 8px', fontSize: '0.78rem', color: '#94A3B8' }}>
-        Rule-based, explainable risk calculations based on asset allocation, vehicle payload strain, and corridor geometry. Explicitly distinct from calibrated ML probability distributions.
+        Rule-based, explainable risk calculations based on asset allocation, vehicle payload strain, and corridor geometry. Rule-based, not a calibrated probability.
       </div>
+
+      {error && (
+        <div className="auth-alert error" style={{ margin: '0 16px 12px' }} role="alert">
+          <div className="auth-alert-content">
+            <span className="auth-alert-title">Delay-risk data unavailable</span>
+            <span className="auth-alert-text">{error}</span>
+          </div>
+        </div>
+      )}
 
       <div className="ai-cards-grid">
         {/* Card 1: Fleet Delay Risk Index */}
@@ -101,7 +111,9 @@ export default function AiInsightPanel({
           </div>
           <h4 className="ai-card-title">Average Operational Delay Risk</h4>
           <p className="ai-card-desc">
-            {totalEvaluated > 0
+            {error
+              ? 'Live delay-risk assessments could not be loaded.'
+              : totalEvaluated > 0
               ? `Calculated across ${totalEvaluated} registered shipments using origin congestion, payload ratio, and transit status.`
               : 'Zero active shipments currently at delay risk.'}
           </p>

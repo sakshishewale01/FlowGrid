@@ -59,7 +59,7 @@
 | **Frontend Framework**| React | `^19.2.8` | Component rendering, state hooks, and UI reactive views |
 | **Build & Dev Tool** | Vite | `^8.3.0` | Instant HMR and optimized production asset bundling |
 | **Geographic Maps** | Leaflet | `^1.9.4` | Interactive waypoint and corridor mapping |
-| **Automated Testing**| pytest & Node Test | `>=8.0.0` / Native | Pytest backend suite + 46 frontend unit/integration tests |
+| **Automated Testing**| pytest & Node Test | `>=8.0.0` / Native | Pytest backend suite + 49 frontend unit/integration tests |
 
 ---
 
@@ -142,6 +142,8 @@ stateDiagram-v2
 
 Every transition automatically generates an immutable audit record in `ShipmentStatusHistory` capturing the old status, new status, timestamp, and operator identifier.
 
+The `Shipment` entity also stores an optional timezone-aware `estimated_delivery_at` promised-delivery timestamp. It is returned by shipment list/detail/tracking responses, must be later than `scheduled_pickup_at` (or the current UTC start reference when no schedule exists), and remains immutable in terminal states.
+
 ---
 
 ## 6. Machine Learning Delay Prediction Subsystem
@@ -176,6 +178,6 @@ Prediction Output
 
 ## 7. Testing & Verification
 
-- **Frontend Suite**: `npm test` runs 46 automated unit and integration tests covering API clients, CSV sanitization, geo-coordinates, notification deduplication, and live FastAPI health probes.
+- **Frontend Suite**: `npm test` runs 49 automated unit and integration tests covering API clients, CSV sanitization, geo-coordinates, notification deduplication, and live delay-risk states.
 - **Backend Suite**: `pytest` validates JWT authentication, RBAC boundaries, state machine transition invariants, capacity checks, and ML prediction endpoints.
 - **Build Quality**: `npm run build` compiles clean production assets with zero bundle errors.

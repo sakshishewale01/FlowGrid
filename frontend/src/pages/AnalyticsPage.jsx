@@ -6,7 +6,6 @@ import DataTable from '../components/DataTable';
 import EmptyState from '../components/EmptyState';
 import { exportShipmentsToCSV } from '../services/exportService.js';
 import { useToast } from '../context/ToastContext';
-import DelayPredictionModal from '../components/DelayPredictionModal';
 
 export default function AnalyticsPage({ onNavigate = null }) {
   const { toast } = useToast();
@@ -19,7 +18,6 @@ export default function AnalyticsPage({ onNavigate = null }) {
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [driverStats, setDriverStats] = useState(null);
   const [vehicleStats, setVehicleStats] = useState(null);
-  const [isPredictorOpen, setIsPredictorOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -34,6 +32,9 @@ export default function AnalyticsPage({ onNavigate = null }) {
 
       if (ovRes.status === 'fulfilled') setOverview(ovRes.value);
       if (drRes.status === 'fulfilled') setDelayRisk(drRes.value);
+      if (drRes.status === 'rejected') {
+        setError(formatErrorMessage(drRes.reason));
+      }
       if (drvRes.status === 'fulfilled') setDriverStats(drvRes.value);
       if (vehRes.status === 'fulfilled') setVehicleStats(vehRes.value);
     } catch (err) {
@@ -192,24 +193,7 @@ export default function AnalyticsPage({ onNavigate = null }) {
           label: 'Export Risk CSV',
           onClick: handleExportRiskReport,
         }}
-      >
-        <button
-          type="button"
-          id="btn-open-ml-delay-predictor"
-          className="btn-action primary"
-          onClick={() => setIsPredictorOpen(true)}
-          title="Open AI/ML India Delay Risk Simulation"
-          style={{
-            background: 'linear-gradient(135deg, #0284C7 0%, #2563EB 100%)',
-            borderColor: '#38BDF8',
-            color: '#FFFFFF',
-            fontWeight: 600,
-          }}
-        >
-          <span style={{ marginRight: '6px' }}>✦</span>
-          <span>Predict Corridor Delay (ML)</span>
-        </button>
-      </PageHeader>
+      />
 
       {error && (
         <div className="auth-alert error" style={{ marginBottom: '16px' }} role="alert">
@@ -304,41 +288,6 @@ export default function AnalyticsPage({ onNavigate = null }) {
           </button>
         </div>
 
-        {/* Card 3: ML PROTOTYPE */}
-        <div
-          style={{
-            backgroundColor: '#1E293B',
-            border: '1px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: '8px',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#C084FC', letterSpacing: '0.05em' }}>
-                MACHINE LEARNING PROTOTYPE
-              </span>
-              <span style={{ fontSize: '1.1rem' }}>✦</span>
-            </div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC', margin: '0 0 6px 0' }}>
-              India Corridor Delay ML Model
-            </h4>
-            <p style={{ fontSize: '0.74rem', color: '#94A3B8', margin: 0, lineHeight: '1.4' }}>
-              Random Forest pipeline inference trained on 1,451 benchmark corridor records (ROC-AUC: 0.5062).
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn-action outline"
-            style={{ marginTop: '12px', fontSize: '0.72rem', padding: '5px 10px', borderColor: '#C084FC', color: '#C084FC' }}
-            onClick={() => setIsPredictorOpen(true)}
-          >
-            Test Corridor Model →
-          </button>
-        </div>
       </div>
 
       {/* Heuristic Methodology Transparency Banner */}
@@ -474,10 +423,6 @@ export default function AnalyticsPage({ onNavigate = null }) {
         }
       />
 
-      <DelayPredictionModal
-        isOpen={isPredictorOpen}
-        onClose={() => setIsPredictorOpen(false)}
-      />
     </div>
   );
 }

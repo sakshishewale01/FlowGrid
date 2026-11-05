@@ -10,7 +10,7 @@ import { apiClient } from './client.js';
 export const mlApi = {
   /**
    * Predicts shipment delay probability, qualitative risk level, and classification
-   * using the trained India corridor Random Forest model artifact.
+   * using the backend's experimental delay prediction endpoint.
    * Strictly decoupled: does not persist records to PostgreSQL.
    *
    * @param {Object} payload
