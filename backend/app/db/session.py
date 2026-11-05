@@ -46,6 +46,11 @@ def _build_engine():
         logger.info("Connected successfully to PostgreSQL database.")
         return pg_engine
     except Exception as exc:
+        if settings.is_production:
+            logger.error("PostgreSQL connection failed in production: %s", exc)
+            raise RuntimeError(
+                "PostgreSQL must be reachable when APP_ENV is production"
+            ) from exc
         logger.warning(
             "PostgreSQL database connection failed (%s). "
             "Automatically falling back to local SQLite database (flowgrid_dev.db) for uninterrupted operation.",

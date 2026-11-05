@@ -18,6 +18,8 @@ from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_SECRET_KEY = "flowgrid_super_secret_development_key_32_bytes_min_length_123!"
+
 
 class Settings(BaseSettings):
     """
@@ -46,7 +48,7 @@ class Settings(BaseSettings):
 
     # Authentication & Security Configuration
     # In production, SECRET_KEY must be a cryptographically secure random string set in .env
-    secret_key: str = "flowgrid_super_secret_development_key_32_bytes_min_length_123!"
+    secret_key: str = DEFAULT_SECRET_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
 
@@ -57,6 +59,20 @@ class Settings(BaseSettings):
     @property
     def is_development(self) -> bool:
         return self.app_env.lower() in ("development", "dev", "local", "test")
+
+    def validate_runtime(self) -> None:
+        """Validate configuration that is unsafe to infer in production."""
+        if not self.is_production:
+            return
+
+        if self.debug:
+            raise ValueError("DEBUG must be False when APP_ENV is production")
+        if self.secret_key == DEFAULT_SECRET_KEY or len(self.secret_key) < 32:
+            raise ValueError(
+                "SECRET_KEY must be explicitly configured with at least 32 characters in production"
+            )
+        if self.database_url.startswith("sqlite"):
+            raise ValueError("DATABASE_URL must reference PostgreSQL in production")
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

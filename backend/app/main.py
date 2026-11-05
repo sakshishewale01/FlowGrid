@@ -98,14 +98,26 @@ OPENAPI_TAGS = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Application lifespan context manager:
-    Ensures database tables are created and demo operational seed data is populated
-    on application startup, preventing database missing-table or missing-user errors.
+    Application lifespan context manager.
+
+    Local development keeps automatic schema creation and demo seeding for
+    backwards-compatible zero-setup use. Production migrations are applied by
+    the container entrypoint and production startup only validates connectivity.
     """
     try:
-        ensure_db_tables_and_seed()
-        logger.info("Database initialized and demo accounts verified.")
+        settings.validate_runtime()
+        if settings.is_production:
+            is_connected, message = check_db_connection()
+            if not is_connected:
+                raise RuntimeError(message)
+            logger.info("Production database is reachable; migrations were applied before startup.")
+        else:
+            ensure_db_tables_and_seed()
+            logger.info("Development database initialized and demo accounts verified.")
     except Exception as exc:
+        if settings.is_production:
+            logger.critical("Production startup validation failed: %s", exc)
+            raise
         logger.warning("Startup database check encountered notice: %s", exc)
     yield
 
