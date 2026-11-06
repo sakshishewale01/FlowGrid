@@ -117,6 +117,7 @@ class RouteRepository:
         route_id: int,
         shipment_ids: List[int],
         assigned_by_user_id: Optional[int] = None,
+        vehicle_id: Optional[int] = None,
     ) -> List[Shipment]:
         """
         Assigns multiple shipments to a route transactionally.
@@ -124,6 +125,9 @@ class RouteRepository:
         """
         try:
             for s_id in shipment_ids:
+                shipment = db.get(Shipment, s_id)
+                if vehicle_id is not None:
+                    shipment.assigned_vehicle_id = vehicle_id
                 assignment = RouteShipment(
                     route_id=route_id,
                     shipment_id=s_id,

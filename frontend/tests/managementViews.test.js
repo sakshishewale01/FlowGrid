@@ -68,6 +68,7 @@ test('Management APIs: Routes corridor listing and shipment allocation are avail
   assert.equal(typeof routesApi.deleteRoute, 'function');
   assert.equal(typeof routesApi.getRouteShipments, 'function');
   assert.equal(typeof routesApi.assignShipmentToRoute, 'function');
+  assert.equal(typeof routesApi.approveRecommendation, 'function');
 });
 
 test('State Machine: Permitted shipment status transitions adhere to lifecycle rules', () => {

@@ -23,10 +23,16 @@ export default function RoutesPage() {
   // Modal control
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [recommendationInput, setRecommendationInput] = useState({ origin: '', destination: '', shipment_weight_kg: '' });
+  const [recommendationInput, setRecommendationInput] = useState({
+    origin: '',
+    destination: '',
+    shipment_id: '',
+    shipment_weight_kg: '',
+  });
   const [recommendations, setRecommendations] = useState(null);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState(null);
+  const [approvalLoading, setApprovalLoading] = useState(null);
 
   const fetchRoutes = useCallback(async () => {
     setLoading(true);
@@ -84,6 +90,7 @@ export default function RoutesPage() {
     try {
       const result = await routesApi.recommendRoutes({
         ...recommendationInput,
+        shipment_id: recommendationInput.shipment_id ? Number(recommendationInput.shipment_id) : undefined,
         shipment_weight_kg: recommendationInput.shipment_weight_kg
           ? Number(recommendationInput.shipment_weight_kg)
           : undefined,
@@ -93,6 +100,26 @@ export default function RoutesPage() {
       setRecommendationError(formatErrorMessage(err));
     } finally {
       setRecommendationLoading(false);
+    }
+  };
+
+  const handleApprove = async (item) => {
+    if (!item.shipment_id) {
+      setRecommendationError('Enter a shipment ID before approving a recommendation.');
+      return;
+    }
+    setApprovalLoading(item.route_id);
+    setRecommendationError(null);
+    try {
+      await routesApi.approveRecommendation(item.route_id, {
+        shipment_id: Number(item.shipment_id),
+        vehicle_id: item.vehicle_id || undefined,
+      });
+      toast.success('Route recommendation approved and shipment assigned');
+    } catch (err) {
+      setRecommendationError(formatErrorMessage(err));
+    } finally {
+      setApprovalLoading(null);
     }
   };
 
@@ -213,8 +240,9 @@ export default function RoutesPage() {
           </div>
         </div>
         <form onSubmit={handleRecommend} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '12px 16px' }}>
-          <input required aria-label="Recommendation origin" placeholder="Origin" value={recommendationInput.origin} onChange={(e) => setRecommendationInput({ ...recommendationInput, origin: e.target.value })} />
-          <input required aria-label="Recommendation destination" placeholder="Destination" value={recommendationInput.destination} onChange={(e) => setRecommendationInput({ ...recommendationInput, destination: e.target.value })} />
+          <input aria-label="Recommendation origin" placeholder="Origin (or shipment ID)" value={recommendationInput.origin} onChange={(e) => setRecommendationInput({ ...recommendationInput, origin: e.target.value })} />
+          <input aria-label="Recommendation destination" placeholder="Destination (or shipment ID)" value={recommendationInput.destination} onChange={(e) => setRecommendationInput({ ...recommendationInput, destination: e.target.value })} />
+          <input aria-label="Shipment ID" type="number" min="1" placeholder="Shipment ID (optional)" value={recommendationInput.shipment_id} onChange={(e) => setRecommendationInput({ ...recommendationInput, shipment_id: e.target.value })} />
           <input aria-label="Shipment weight" type="number" min="0" placeholder="Weight kg (optional)" value={recommendationInput.shipment_weight_kg} onChange={(e) => setRecommendationInput({ ...recommendationInput, shipment_weight_kg: e.target.value })} />
           <button type="submit" className="btn-action primary" disabled={recommendationLoading}>{recommendationLoading ? 'Ranking…' : 'Recommend route'}</button>
         </form>
@@ -225,7 +253,20 @@ export default function RoutesPage() {
               <div key={item.route_id} className="panel-card" style={{ padding: '10px', marginTop: '8px' }}>
                 <strong>{item.route_name}</strong> <span className="table-secondary-text">score {item.score}</span>
                 <div className="table-secondary-text">{item.origin} → {item.destination} · {item.estimated_duration ?? '—'}h estimated</div>
+                {item.vehicle_id && <div className="table-secondary-text">Suggested available vehicle: VEH-{item.vehicle_id} ({item.vehicle_capacity_kg} kg capacity)</div>}
+                {item.constraints?.length > 0 && <div className="table-secondary-text">{item.constraints.join(' ')}</div>}
                 <div className="table-secondary-text">{item.explanation.join(' ')}</div>
+                {isManagerOrAdmin && item.shipment_id && item.capacity_feasible && (
+                  <button
+                    type="button"
+                    className="btn-action primary"
+                    style={{ marginTop: '8px', padding: '4px 10px', fontSize: '0.75rem' }}
+                    disabled={approvalLoading === item.route_id}
+                    onClick={() => handleApprove(item)}
+                  >
+                    {approvalLoading === item.route_id ? 'Approving…' : 'Approve & assign'}
+                  </button>
+                )}
               </div>
             ))}
             <small className="table-secondary-text">{recommendations.limitations.join(' ')}</small>

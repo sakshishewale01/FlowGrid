@@ -134,6 +134,87 @@ def test_route_recommendation_is_explainable_and_estimated(client):
     assert "traffic" in " ".join(body["limitations"]).lower()
 
 
+def test_route_recommendation_capacity_and_approval_are_authorized(client):
+    headers = auth_headers(client)
+    vehicle = client.post(
+        "/api/v1/vehicles",
+        headers=headers,
+        json={"registration_number": "P3-ROUTE-VEH", "vehicle_type": "Van", "capacity": 1000},
+    ).json()
+    route = client.post(
+        "/api/v1/routes",
+        headers=headers,
+        json={"name": "P3 Approved Corridor", "origin": "Chicago", "destination": "Detroit", "estimated_distance": 280, "estimated_duration": 5},
+    ).json()
+    shipment = client.post(
+        "/api/v1/shipments",
+        headers=headers,
+        json={
+            "tracking_number": "FG-P3-ROUTE-001",
+            "destination_address": "1 Detroit Ave",
+            "destination_city": "Detroit",
+            "destination_state": "MI",
+            "destination_postal_code": "48201",
+            "total_weight_kg": 500,
+        },
+    ).json()
+    recommendation = client.post(
+        "/api/v1/routes/recommendations",
+        headers=headers,
+        json={"origin": "Chicago", "destination": "Detroit", "shipment_id": shipment["id"]},
+    )
+    assert recommendation.status_code == 200
+    assert recommendation.json()["recommendations"][0]["capacity_feasible"] is True
+    assert recommendation.json()["recommendations"][0]["shipment_id"] == shipment["id"]
+
+    viewer_headers = auth_headers(client, "VIEWER")
+    forbidden = client.post(
+        f"/api/v1/routes/recommendations/{route['id']}/approve",
+        headers=viewer_headers,
+        json={"shipment_id": shipment["id"], "vehicle_id": vehicle["id"]},
+    )
+    assert forbidden.status_code == 403
+
+    approved = client.post(
+        f"/api/v1/routes/recommendations/{route['id']}/approve",
+        headers=headers,
+        json={"shipment_id": shipment["id"], "vehicle_id": vehicle["id"]},
+    )
+    assert approved.status_code == 200
+    assert approved.json()["vehicle_id"] == vehicle["id"]
+    assigned = client.get(f"/api/v1/routes/{route['id']}/shipments", headers=headers)
+    assert assigned.status_code == 200
+    assert assigned.json()[0]["id"] == shipment["id"]
+
+
+def test_route_recommendation_rejects_insufficient_vehicle_capacity(client):
+    headers = auth_headers(client)
+    client.post(
+        "/api/v1/vehicles",
+        headers=headers,
+        json={"registration_number": "P3-ROUTE-SMALL", "vehicle_type": "Van", "capacity": 100},
+    )
+    client.post(
+        "/api/v1/routes",
+        headers=headers,
+        json={"name": "P3 Capacity Corridor", "origin": "Chicago", "destination": "Detroit"},
+    )
+    response = client.post(
+        "/api/v1/routes/recommendations",
+        headers=headers,
+        json={"origin": "Chicago", "destination": "Detroit", "shipment_weight_kg": 500},
+    )
+    assert response.status_code == 200
+    assert response.json()["recommendations"][0]["capacity_feasible"] is False
+    assert "capacity" in " ".join(response.json()["recommendations"][0]["constraints"]).lower()
+
+
+def test_route_recommendation_rejects_missing_corridor_input(client):
+    headers = auth_headers(client)
+    response = client.post("/api/v1/routes/recommendations", headers=headers, json={})
+    assert response.status_code == 422
+
+
 def test_inventory_forecast_discloses_insufficient_history_and_report_is_csv(client):
     headers = auth_headers(client)
     warehouse = client.post(

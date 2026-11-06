@@ -41,8 +41,8 @@ verification:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 321 passed, existing dependency warnings | **COMPLETE** |
-| Backend test collection | 321 tests collected | **COMPLETE** |
+| Backend test suite | 324 passed, existing dependency warnings | **COMPLETE** |
+| Backend test collection | 324 tests collected | **COMPLETE** |
 | Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
 | Git worktree inspection | Phase 3.2 backend/frontend/docs changes are scoped; generated local database removed | **COMPLETE** |
@@ -84,7 +84,7 @@ Starlette/httpx stack; they did not fail the suite.
 |---|---|---|
 | Intelligent fleet monitoring | Dashboard, fleet records, assignments, and tracking support exist; real-data behavior needs live verification | **PARTIALLY COMPLETE** |
 | Fleet maintenance management | Vehicle-linked service history, service/next-due dates, status updates, upcoming/overdue endpoint, frontend loading/empty/error/success states, RBAC, migration, and tests are implemented | **COMPLETE** |
-| Intelligent route recommendation | Authorized endpoint ranks active/planned stored routes with explanations and explicit estimate limitations | **COMPLETE** |
+| Intelligent route recommendation | Shipment-aware recommendations use stored warehouse, shipment, route, and available vehicle data; compare stored active/planned corridors, explain constraints, expose estimate-only limitations, and require manager/admin approval before route/vehicle assignment | **COMPLETE** |
 | Predictive inventory intelligence | Authorized transparent baseline endpoint and frontend disclosure exist; historical demand is unavailable | **PARTIALLY COMPLETE** |
 | Proof of delivery | Driver/manager confirmation workflow, one-to-one persistence, lifecycle completion, duplicate protection, history review, and missing-confirmation review are implemented and tested; photo/signature upload is intentionally not claimed | **COMPLETE** |
 | Operational reports | Authenticated shipment, inventory, and fleet CSV exports include spreadsheet formula-injection protection | **COMPLETE** |

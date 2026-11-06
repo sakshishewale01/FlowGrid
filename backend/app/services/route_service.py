@@ -12,10 +12,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.models.route import Route, RouteStatus
+from app.models.vehicle import Vehicle
 from app.models.shipment import Shipment
 from app.models.user import User
 from app.repositories.route_repository import route_repository
 from app.repositories.shipment_repository import shipment_repository
+from app.repositories.vehicle_repository import vehicle_repository
 from app.schemas.route import RouteCreate, RouteUpdate
 
 
@@ -28,9 +30,11 @@ class RouteService:
         self,
         repository=route_repository,
         shipment_repo=shipment_repository,
+        vehicle_repo=vehicle_repository,
     ):
         self.repository = repository
         self.shipment_repo = shipment_repo
+        self.vehicle_repo = vehicle_repo
 
     def create_route(self, db: Session, payload: RouteCreate) -> Route:
         """
@@ -195,6 +199,7 @@ class RouteService:
         route_id: int,
         shipment_ids: List[int],
         current_user: Optional[User] = None,
+        vehicle_id: Optional[int] = None,
     ) -> List[Shipment]:
         """
         Assigns one or more shipments to a route transactionally.
@@ -222,6 +227,14 @@ class RouteService:
                 detail="Duplicate shipment IDs provided in assignment request",
             )
 
+        vehicle = None
+        if vehicle_id is not None:
+            vehicle = self.vehicle_repo.get_by_id(db, vehicle_id)
+            if not vehicle:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Vehicle with ID {vehicle_id} does not exist")
+            if vehicle.status != "AVAILABLE":
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Vehicle with ID {vehicle_id} is not available")
+
         # 3. Validate each shipment exists and is not already assigned
         for s_id in shipment_ids:
             shipment = self.shipment_repo.get_by_id(db, s_id)
@@ -237,6 +250,12 @@ class RouteService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Shipment with ID {s_id} is already assigned to route {route_id}",
                 )
+            if vehicle is not None and shipment.total_weight_kg is not None:
+                if vehicle.capacity < shipment.total_weight_kg:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Vehicle capacity ({vehicle.capacity} kg) is below shipment weight ({shipment.total_weight_kg} kg)",
+                    )
 
         # 4. Perform transactional assignment
         user_id = current_user.id if current_user else None
@@ -246,6 +265,7 @@ class RouteService:
                 route_id=route_id,
                 shipment_ids=shipment_ids,
                 assigned_by_user_id=user_id,
+                vehicle_id=vehicle_id,
             )
         except IntegrityError:
             raise HTTPException(

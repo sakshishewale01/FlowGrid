@@ -38,6 +38,10 @@ export const routesApi = {
     return apiClient.post('/api/v1/routes/recommendations', payload);
   },
 
+  async approveRecommendation(routeId, payload) {
+    return apiClient.post(`/api/v1/routes/recommendations/${routeId}/approve`, payload);
+  },
+
   /**
    * Retrieves route by primary key ID.
    */

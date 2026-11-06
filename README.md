@@ -49,6 +49,7 @@ implementation currently present in the repository, not only the original plan.
   - Tracking events and immutable status history
   - Authenticated real-time shipment tracking over WebSocket
   - Explainable route recommendations ranked from stored active/planned corridors
+  - Shipment-aware warehouse/vehicle capacity constraints and manager/admin approval before assignment
 - **Analytics**
   - Overview KPIs
   - Shipment, warehouse, inventory, route, driver, and vehicle analytics
@@ -56,7 +57,7 @@ implementation currently present in the repository, not only the original plan.
   - Authenticated shipment, inventory, and fleet CSV report exports with spreadsheet-safe cells
 - **Phase 3 decision-support workflows**
   - Inventory planning baseline endpoint with explicit insufficient-history disclosure
-  - Frontend route recommendation, inventory forecast, and fleet maintenance workflows
+  - Frontend route recommendation approval, inventory forecast, and fleet maintenance workflows
 - **AI-ready data pipeline**
   - Dataset generation from operational records
   - Feature extraction and engineering
@@ -183,6 +184,7 @@ Additional application endpoints:
 - `PATCH /api/v1/vehicles/maintenance/{record_id}` — manager/admin maintenance updates
 - `GET /api/v1/vehicles/maintenance/due?days=30` — authenticated upcoming/overdue maintenance
 - `POST /api/v1/routes/recommendations` — explainable stored-route recommendations
+- `POST /api/v1/routes/recommendations/{route_id}/approve` — manager/admin approval applying a reviewed route and optional vehicle assignment
 - `GET /api/v1/inventory/{inventory_id}/forecast` — transparent inventory planning baseline
 - `GET /api/v1/analytics/reports.csv` — authenticated shipment, inventory, or fleet CSV report
 - `/docs` — Swagger UI

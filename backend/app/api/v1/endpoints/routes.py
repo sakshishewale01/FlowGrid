@@ -30,10 +30,27 @@ from app.services.route_service import route_service
 from app.schemas.route_recommendation import (
     RouteRecommendationRequest,
     RouteRecommendationResponse,
+    RouteRecommendationApproval,
+    RouteRecommendationApprovalResponse,
 )
 from app.services.route_recommendation_service import route_recommendation_service
 
 router = APIRouter()
+
+
+@router.post(
+    "/recommendations/{route_id}/approve",
+    response_model=RouteRecommendationApprovalResponse,
+    summary="Approve a route recommendation",
+    description="Applies a reviewed route recommendation to a shipment. It does not run automatically.",
+)
+def approve_route_recommendation(
+    route_id: int,
+    payload: RouteRecommendationApproval,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER])),
+) -> RouteRecommendationApprovalResponse:
+    return route_recommendation_service.approve(db, route_id, payload, current_user)
 
 
 @router.post(
