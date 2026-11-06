@@ -23,7 +23,9 @@ class VehicleMaintenance(Base):
     )
     service_type: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    service_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    next_service_due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="SCHEDULED", index=True

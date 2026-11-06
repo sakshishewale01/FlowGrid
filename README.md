@@ -33,7 +33,8 @@ implementation currently present in the repository, not only the original plan.
   - Driver records, license data, phone data, and availability
   - Vehicle records, types, capacity, and operational status
   - Driver and vehicle assignment workflows
-  - Vehicle maintenance schedules, due dates, statuses, and history
+  - Vehicle maintenance schedules, service dates, next-service due dates, statuses, and history
+  - Upcoming/overdue maintenance identification with manager/admin updates
 - **Shipment operations**
   - Shipment creation, listing, detail, update, and assignment
   - Lifecycle state-machine validation
@@ -179,6 +180,8 @@ Additional application endpoints:
 - `GET /api/v1/shipments/delivery-confirmations/missing` — delivered shipments without confirmation
 - `GET /api/v1/vehicles/{vehicle_id}/maintenance` — maintenance schedule/history
 - `POST /api/v1/vehicles/{vehicle_id}/maintenance` — manager/admin maintenance scheduling
+- `PATCH /api/v1/vehicles/maintenance/{record_id}` — manager/admin maintenance updates
+- `GET /api/v1/vehicles/maintenance/due?days=30` — authenticated upcoming/overdue maintenance
 - `POST /api/v1/routes/recommendations` — explainable stored-route recommendations
 - `GET /api/v1/inventory/{inventory_id}/forecast` — transparent inventory planning baseline
 - `GET /api/v1/analytics/reports.csv` — authenticated shipment, inventory, or fleet CSV report

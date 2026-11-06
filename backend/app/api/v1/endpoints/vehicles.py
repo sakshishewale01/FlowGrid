@@ -26,10 +26,32 @@ from app.schemas.vehicle_maintenance import (
     VehicleMaintenanceCreate,
     VehicleMaintenanceResponse,
     VehicleMaintenanceUpdate,
+    VehicleMaintenanceAlertResponse,
 )
 from app.services.vehicle_maintenance_service import vehicle_maintenance_service
 
 router = APIRouter()
+
+
+@router.get(
+    "/maintenance/due",
+    response_model=List[VehicleMaintenanceAlertResponse],
+    summary="List upcoming and overdue vehicle maintenance",
+)
+def list_due_vehicle_maintenance(
+    days: int = Query(30, ge=0, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[VehicleMaintenanceAlertResponse]:
+    return [
+        {
+            **record.__dict__,
+            "registration_number": vehicle.registration_number,
+            "due_date": due_date,
+            "due_status": due_status,
+        }
+        for record, vehicle, due_date, due_status in vehicle_maintenance_service.list_due(db, days)
+    ]
 
 
 @router.get(

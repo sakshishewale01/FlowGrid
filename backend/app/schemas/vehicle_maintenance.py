@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 VALID_MAINTENANCE_STATUSES = {"SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"}
@@ -12,7 +12,9 @@ VALID_MAINTENANCE_STATUSES = {"SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLE
 class VehicleMaintenanceCreate(BaseModel):
     service_type: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=2000)
+    service_date: Optional[date] = None
     scheduled_date: date
+    next_service_due_date: Optional[date] = None
     status: str = Field(default="SCHEDULED")
 
     @field_validator("service_type")
@@ -31,11 +33,21 @@ class VehicleMaintenanceCreate(BaseModel):
             raise ValueError("Invalid maintenance status")
         return value
 
+    @model_validator(mode="after")
+    def validate_due_date(self):
+        if self.next_service_due_date and self.next_service_due_date < self.scheduled_date:
+            raise ValueError("Next service due date cannot be before the scheduled date")
+        if self.service_date and self.next_service_due_date and self.next_service_due_date < self.service_date:
+            raise ValueError("Next service due date cannot be before the service date")
+        return self
+
 
 class VehicleMaintenanceUpdate(BaseModel):
     service_type: Optional[str] = Field(default=None, min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=2000)
+    service_date: Optional[date] = None
     scheduled_date: Optional[date] = None
+    next_service_due_date: Optional[date] = None
     completed_at: Optional[datetime] = None
     status: Optional[str] = None
 
@@ -55,16 +67,32 @@ class VehicleMaintenanceUpdate(BaseModel):
                 raise ValueError("Invalid maintenance status")
         return value
 
+    @model_validator(mode="after")
+    def validate_due_date(self):
+        if self.next_service_due_date and self.scheduled_date and self.next_service_due_date < self.scheduled_date:
+            raise ValueError("Next service due date cannot be before the scheduled date")
+        if self.service_date and self.next_service_due_date and self.next_service_due_date < self.service_date:
+            raise ValueError("Next service due date cannot be before the service date")
+        return self
+
 
 class VehicleMaintenanceResponse(BaseModel):
     id: int
     vehicle_id: int
     service_type: str
     description: Optional[str]
+    service_date: Optional[date]
     scheduled_date: date
+    next_service_due_date: Optional[date]
     completed_at: Optional[datetime]
     status: str
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class VehicleMaintenanceAlertResponse(VehicleMaintenanceResponse):
+    registration_number: str
+    due_date: date
+    due_status: str

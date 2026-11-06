@@ -40,6 +40,10 @@ test('Management APIs: Vehicles fleet operations are available', () => {
   assert.equal(typeof vehiclesApi.createVehicle, 'function');
   assert.equal(typeof vehiclesApi.updateVehicle, 'function');
   assert.equal(typeof vehiclesApi.deleteVehicle, 'function');
+  assert.equal(typeof vehiclesApi.listMaintenance, 'function');
+  assert.equal(typeof vehiclesApi.scheduleMaintenance, 'function');
+  assert.equal(typeof vehiclesApi.updateMaintenance, 'function');
+  assert.equal(typeof vehiclesApi.listMaintenanceDue, 'function');
 });
 
 test('Management APIs: Shipments status transitions and assignments are available', () => {

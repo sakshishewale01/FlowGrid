@@ -41,11 +41,11 @@ verification:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 320 passed, existing dependency warnings | **COMPLETE** |
-| Backend test collection | 320 tests collected | **COMPLETE** |
+| Backend test suite | 321 passed, existing dependency warnings | **COMPLETE** |
+| Backend test collection | 321 tests collected | **COMPLETE** |
 | Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
-| Git worktree inspection | README was modified; no unrelated changes observed | **NEEDS MANUAL VERIFICATION** |
+| Git worktree inspection | Phase 3.2 backend/frontend/docs changes are scoped; generated local database removed | **COMPLETE** |
 | Alembic graph | One head (`9a6f2d8e1c44`) | **COMPLETE** |
 | Clean PostgreSQL migration run | Not performed | **NEEDS MANUAL VERIFICATION** |
 | Live backend/frontend workflow | Not performed in this audit | **NEEDS MANUAL VERIFICATION** |
@@ -83,7 +83,7 @@ Starlette/httpx stack; they did not fail the suite.
 | Requested feature | Finding | Status |
 |---|---|---|
 | Intelligent fleet monitoring | Dashboard, fleet records, assignments, and tracking support exist; real-data behavior needs live verification | **PARTIALLY COMPLETE** |
-| Fleet maintenance management | Vehicle-linked schedule/history API and frontend workflow with RBAC are implemented and tested | **COMPLETE** |
+| Fleet maintenance management | Vehicle-linked service history, service/next-due dates, status updates, upcoming/overdue endpoint, frontend loading/empty/error/success states, RBAC, migration, and tests are implemented | **COMPLETE** |
 | Intelligent route recommendation | Authorized endpoint ranks active/planned stored routes with explanations and explicit estimate limitations | **COMPLETE** |
 | Predictive inventory intelligence | Authorized transparent baseline endpoint and frontend disclosure exist; historical demand is unavailable | **PARTIALLY COMPLETE** |
 | Proof of delivery | Driver/manager confirmation workflow, one-to-one persistence, lifecycle completion, duplicate protection, history review, and missing-confirmation review are implemented and tested; photo/signature upload is intentionally not claimed | **COMPLETE** |

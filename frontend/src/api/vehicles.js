@@ -48,6 +48,10 @@ export const vehiclesApi = {
     return apiClient.patch(`/api/v1/vehicles/maintenance/${recordId}`, payload);
   },
 
+  async listMaintenanceDue(days = 30) {
+    return apiClient.get(`/api/v1/vehicles/maintenance/due?days=${days}`);
+  },
+
   /**
    * Registers a new fleet vehicle (ADMIN, MANAGER).
    */

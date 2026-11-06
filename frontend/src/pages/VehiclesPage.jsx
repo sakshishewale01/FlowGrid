@@ -30,7 +30,13 @@ export default function VehiclesPage() {
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
   const [maintenanceError, setMaintenanceError] = useState(null);
-  const [maintenanceForm, setMaintenanceForm] = useState({ service_type: '', scheduled_date: '', description: '' });
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    service_type: '',
+    service_date: '',
+    scheduled_date: '',
+    next_service_due_date: '',
+    description: '',
+  });
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -101,15 +107,32 @@ export default function VehiclesPage() {
     setMaintenanceLoading(true);
     setMaintenanceError(null);
     try {
-      await vehiclesApi.scheduleMaintenance(maintenanceVehicle.id, maintenanceForm);
+      await vehiclesApi.scheduleMaintenance(maintenanceVehicle.id, {
+        ...maintenanceForm,
+        service_date: maintenanceForm.service_date || null,
+        next_service_due_date: maintenanceForm.next_service_due_date || null,
+      });
       setMaintenanceRecords(await vehiclesApi.listMaintenance(maintenanceVehicle.id));
-      setMaintenanceForm({ service_type: '', scheduled_date: '', description: '' });
+      setMaintenanceForm({
+        service_type: '',
+        service_date: '',
+        scheduled_date: '',
+        next_service_due_date: '',
+        description: '',
+      });
       toast.success('Maintenance scheduled successfully');
     } catch (err) {
       setMaintenanceError(formatErrorMessage(err));
     } finally {
       setMaintenanceLoading(false);
     }
+  };
+
+  const maintenanceDueStatus = (record) => {
+    if (record.status === 'COMPLETED' || record.status === 'CANCELLED') return null;
+    const dueDate = record.next_service_due_date || record.scheduled_date;
+    if (!dueDate) return null;
+    return new Date(`${dueDate}T00:00:00`) < new Date() ? 'OVERDUE' : 'UPCOMING';
   };
 
   const columns = useMemo(() => [
@@ -160,16 +183,17 @@ export default function VehiclesPage() {
       align: 'right',
       render: (v) => (
         <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
-          {isManagerOrAdmin && (
-            <>
-              <button
-                type="button"
-                className="btn-action outline"
-                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                onClick={(e) => { e.stopPropagation(); handleOpenMaintenance(v); }}
-              >
-                Maintenance
-              </button>
+          <>
+            <button
+              type="button"
+              className="btn-action outline"
+              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+              onClick={(e) => { e.stopPropagation(); handleOpenMaintenance(v); }}
+            >
+              Maintenance
+            </button>
+            {isManagerOrAdmin && (
+              <>
               <button
                 type="button"
                 className="btn-action outline"
@@ -192,11 +216,12 @@ export default function VehiclesPage() {
               >
                 Edit
               </button>
-            </>
-          )}
+              </>
+            )}
           {!isManagerOrAdmin && (
             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
           )}
+          </>
         </div>
       ),
     },
@@ -316,7 +341,9 @@ export default function VehiclesPage() {
               {isManagerOrAdmin && (
                 <form onSubmit={handleScheduleMaintenance} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '12px 0' }}>
                   <input required aria-label="Service type" placeholder="Service type" value={maintenanceForm.service_type} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, service_type: e.target.value })} />
+                  <input aria-label="Service date" type="date" value={maintenanceForm.service_date} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, service_date: e.target.value })} />
                   <input required aria-label="Scheduled date" type="date" value={maintenanceForm.scheduled_date} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, scheduled_date: e.target.value })} />
+                  <input aria-label="Next service due date" type="date" value={maintenanceForm.next_service_due_date} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, next_service_due_date: e.target.value })} />
                   <input aria-label="Maintenance description" placeholder="Description (optional)" value={maintenanceForm.description} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })} />
                   <button type="submit" className="btn-action primary" disabled={maintenanceLoading}>Schedule service</button>
                 </form>
@@ -326,8 +353,36 @@ export default function VehiclesPage() {
               {!maintenanceLoading && maintenanceRecords.length === 0 && <EmptyState title="No maintenance records" description="No scheduled or completed service is recorded for this vehicle." />}
               {!maintenanceLoading && maintenanceRecords.map((record) => (
                 <div key={record.id} style={{ padding: '8px 0', borderTop: '1px solid rgba(148,163,184,.15)' }}>
-                  <strong>{record.service_type}</strong> <span className="table-secondary-text">{record.status} · due {record.scheduled_date}</span>
+                  <strong>{record.service_type}</strong> <span className="table-secondary-text">{record.status} · scheduled {record.scheduled_date}</span>
+                  {maintenanceDueStatus(record) && <StatusBadge status={maintenanceDueStatus(record)} />}
+                  {record.service_date && <div className="table-secondary-text">Serviced: {record.service_date}</div>}
+                  {record.next_service_due_date && <div className="table-secondary-text">Next service due: {record.next_service_due_date}</div>}
                   {record.description && <div className="table-secondary-text">{record.description}</div>}
+                  {isManagerOrAdmin && (
+                    <button
+                      type="button"
+                      className="btn-action outline"
+                      style={{ marginTop: '6px', padding: '3px 8px', fontSize: '0.72rem' }}
+                      disabled={maintenanceLoading}
+                      onClick={async () => {
+                        setMaintenanceLoading(true);
+                        setMaintenanceError(null);
+                        try {
+                          await vehiclesApi.updateMaintenance(record.id, {
+                            status: record.status === 'COMPLETED' ? 'SCHEDULED' : 'COMPLETED',
+                          });
+                          setMaintenanceRecords(await vehiclesApi.listMaintenance(maintenanceVehicle.id));
+                          toast.success('Maintenance record updated successfully');
+                        } catch (err) {
+                          setMaintenanceError(formatErrorMessage(err));
+                        } finally {
+                          setMaintenanceLoading(false);
+                        }
+                      }}
+                    >
+                      {record.status === 'COMPLETED' ? 'Reopen service' : 'Mark completed'}
+                    </button>
+                  )}
                 </div>
               ))}
             </section>

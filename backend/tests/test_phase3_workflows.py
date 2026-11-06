@@ -2,6 +2,7 @@
 
 import csv
 import io
+from datetime import date, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -66,6 +67,52 @@ def test_maintenance_schedule_and_history_are_role_protected(client):
         json={"service_type": "Oil change", "scheduled_date": "2026-12-02"},
     )
     assert forbidden.status_code == 403
+
+
+def test_maintenance_tracks_service_dates_updates_and_due_alerts(client):
+    headers = auth_headers(client)
+    vehicle = client.post(
+        "/api/v1/vehicles",
+        headers=headers,
+        json={"registration_number": "P3-002", "vehicle_type": "Van", "capacity": 1000},
+    ).json()
+    created = client.post(
+        f"/api/v1/vehicles/{vehicle['id']}/maintenance",
+        headers=headers,
+        json={
+            "service_type": "Oil change",
+            "service_date": "2026-10-01",
+            "scheduled_date": "2026-10-15",
+            "next_service_due_date": "2026-11-15",
+        },
+    )
+    assert created.status_code == 201
+    record_id = created.json()["id"]
+    assert created.json()["next_service_due_date"] == "2026-11-15"
+
+    updated = client.patch(
+        f"/api/v1/vehicles/maintenance/{record_id}",
+        headers=headers,
+        json={"status": "COMPLETED", "completed_at": "2026-10-15T12:00:00Z"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["status"] == "COMPLETED"
+
+    due_date = date.today() + timedelta(days=5)
+    pending = client.post(
+        f"/api/v1/vehicles/{vehicle['id']}/maintenance",
+        headers=headers,
+        json={
+            "service_type": "Tire rotation",
+            "scheduled_date": str(date.today()),
+            "next_service_due_date": str(due_date),
+        },
+    )
+    assert pending.status_code == 201
+    upcoming = client.get("/api/v1/vehicles/maintenance/due?days=365", headers=headers)
+    assert upcoming.status_code == 200
+    assert all(item["status"] not in {"COMPLETED", "CANCELLED"} for item in upcoming.json())
+    assert upcoming.json()[0]["due_date"] == str(due_date)
 
 
 def test_route_recommendation_is_explainable_and_estimated(client):
