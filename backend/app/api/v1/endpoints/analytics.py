@@ -43,7 +43,7 @@ router = APIRouter()
     description="Exports shipment, inventory, or fleet records with spreadsheet formula injection protection.",
 )
 def export_operational_report(
-    report_type: str = Query("shipments", pattern="^(shipments|inventory|fleet)$"),
+    report_type: str = Query("shipments", pattern="^(shipments|delivery|inventory|fleet)$"),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),

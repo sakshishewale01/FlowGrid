@@ -191,7 +191,7 @@ Additional application endpoints:
 - `GET /api/v1/inventory/{inventory_id}/forecast?horizon_days=30` — transparent trend-based demand estimate or threshold fallback
 - `GET /api/v1/inventory/{inventory_id}/movements` — recorded inventory movement history
 - `GET /api/v1/inventory/recommendations?horizon_days=30` — manager/admin reorder recommendation review
-- `GET /api/v1/analytics/reports.csv` — authenticated shipment, inventory, or fleet CSV report
+- `GET /api/v1/analytics/reports.csv?report_type=shipments|delivery|inventory|fleet&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` — authenticated operational CSV report with inclusive date filtering and spreadsheet formula-injection protection. Shipment and delivery reports use persisted shipment/status timestamps; inventory uses inventory update timestamps; fleet assignment totals use persisted shipment assignments.
 - `/docs` — Swagger UI
 - `/redoc` — ReDoc
 

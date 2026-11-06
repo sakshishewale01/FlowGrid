@@ -18,6 +18,10 @@ export default function AnalyticsPage({ onNavigate = null }) {
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [driverStats, setDriverStats] = useState(null);
   const [vehicleStats, setVehicleStats] = useState(null);
+  const [reportType, setReportType] = useState('shipments');
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -177,6 +181,32 @@ export default function AnalyticsPage({ onNavigate = null }) {
     }
   };
 
+  const handleExportOperationalReport = async () => {
+    if (reportStartDate && reportEndDate && reportStartDate > reportEndDate) {
+      toast.error('Report start date must be on or before the end date');
+      return;
+    }
+    setReportLoading(true);
+    try {
+      const csv = await analyticsApi.exportReport(reportType, {
+        start_date: reportStartDate || undefined,
+        end_date: reportEndDate || undefined,
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `flowgrid-${reportType}-report.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success('Operational report exported successfully');
+    } catch (err) {
+      toast.error(formatErrorMessage(err));
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   return (
     <div className="management-page" id="analytics-control-tower-page">
       <PageHeader
@@ -206,6 +236,24 @@ export default function AnalyticsPage({ onNavigate = null }) {
           </button>
         </div>
       )}
+
+      <section className="panel-card" style={{ marginBottom: '16px', padding: '16px' }} aria-label="Operational reports">
+        <h2>Operational reports</h2>
+        <p className="table-secondary-text">Reports use persisted shipment, delivery, inventory, and vehicle records. Empty ranges export headers only.</p>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <select aria-label="Report type" className="form-input form-select" value={reportType} onChange={(e) => setReportType(e.target.value)}>
+            <option value="shipments">Shipment performance</option>
+            <option value="delivery">Delivery performance</option>
+            <option value="inventory">Inventory and low stock</option>
+            <option value="fleet">Fleet utilization</option>
+          </select>
+          <input aria-label="Report start date" className="form-input" type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} />
+          <input aria-label="Report end date" className="form-input" type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} />
+          <button type="button" className="btn-action primary" onClick={handleExportOperationalReport} disabled={reportLoading}>
+            {reportLoading ? 'Exporting…' : 'Export report'}
+          </button>
+        </div>
+      </section>
 
       {/* Control Tower Workflow Navigator Cards (DETECT -> RECOMMEND -> SIMULATE RECOVERY) */}
       <div

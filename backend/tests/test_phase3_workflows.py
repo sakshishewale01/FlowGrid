@@ -286,3 +286,40 @@ def test_inventory_forecast_uses_recorded_movements_and_recommendations_are_prot
     viewer_headers = auth_headers(client, "VIEWER")
     forbidden = client.get("/api/v1/inventory/recommendations", headers=viewer_headers)
     assert forbidden.status_code == 403
+
+
+def test_operational_reports_validate_ranges_and_support_delivery_and_fleet_reports(client):
+    headers = auth_headers(client)
+    invalid = client.get(
+        "/api/v1/analytics/reports.csv?report_type=delivery&start_date=2026-02-01&end_date=2026-01-01",
+        headers=headers,
+    )
+    assert invalid.status_code == 422
+
+    delivery = client.get("/api/v1/analytics/reports.csv?report_type=delivery", headers=headers)
+    assert delivery.status_code == 200
+    assert next(csv.reader(io.StringIO(delivery.text))) == [
+        "shipment_id",
+        "tracking_number",
+        "delivered_at",
+        "actual_duration_hours",
+        "planned_duration_hours",
+        "on_time",
+    ]
+
+    fleet = client.get(
+        "/api/v1/analytics/reports.csv?report_type=fleet&start_date=2099-01-01&end_date=2099-01-02",
+        headers=headers,
+    )
+    assert fleet.status_code == 200
+    assert next(csv.reader(io.StringIO(fleet.text))) == [
+        "vehicle_id",
+        "registration_number",
+        "vehicle_type",
+        "capacity",
+        "status",
+        "assigned_shipments",
+        "assigned_weight_kg",
+        "created_at",
+        "updated_at",
+    ]

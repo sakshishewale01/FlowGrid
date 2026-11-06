@@ -20,7 +20,7 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- Backend automated tests currently pass: **320 passed**.
+- Backend automated tests currently pass: **326 passed**.
 - Frontend tests currently report **41 passed and 8 skipped** because the live
   backend integration server was not running.
 - The frontend production build succeeds.
@@ -41,12 +41,12 @@ verification:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 324 passed, existing dependency warnings | **COMPLETE** |
-| Backend test collection | 324 tests collected | **COMPLETE** |
+| Backend test suite | 326 passed, existing dependency warnings | **COMPLETE** |
+| Backend test collection | 326 tests collected | **COMPLETE** |
 | Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
-| Git worktree inspection | Phase 3.2 backend/frontend/docs changes are scoped; generated local database removed | **COMPLETE** |
-| Alembic graph | One head (`9a6f2d8e1c44`) | **COMPLETE** |
+| Git worktree inspection | Phase 3.5 reporting changes are scoped; generated local database restored after tests | **COMPLETE** |
+| Alembic graph | One head (`a2b3c4d5e6f7`) | **COMPLETE** |
 | Clean PostgreSQL migration run | Not performed | **NEEDS MANUAL VERIFICATION** |
 | Live backend/frontend workflow | Not performed in this audit | **NEEDS MANUAL VERIFICATION** |
 | Production container startup | Entrypoint and packaging updated; Docker engine unavailable for runtime verification | **NEEDS MANUAL VERIFICATION** |
@@ -87,7 +87,7 @@ Starlette/httpx stack; they did not fail the suite.
 | Intelligent route recommendation | Shipment-aware recommendations use stored warehouse, shipment, route, and available vehicle data; compare stored active/planned corridors, explain constraints, expose estimate-only limitations, and require manager/admin approval before route/vehicle assignment | **COMPLETE** |
 | Predictive inventory intelligence | Recorded movement history, trend display, average-rate demand estimates when sufficient data exists, threshold fallback, stockout risk, reorder quantities, explanations, manager/admin review, and limitations are implemented and tested | **COMPLETE** |
 | Proof of delivery | Driver/manager confirmation workflow, one-to-one persistence, lifecycle completion, duplicate protection, history review, and missing-confirmation review are implemented and tested; photo/signature upload is intentionally not claimed | **COMPLETE** |
-| Operational reports | Authenticated shipment, inventory, and fleet CSV exports include spreadsheet formula-injection protection | **COMPLETE** |
+| Operational reports | Authenticated shipment, delivery, inventory/low-stock, and fleet-utilization CSV exports support inclusive date filters, empty header-only results, formula-injection protection, and an existing analytics-page export workflow | **COMPLETE** |
 | Delay prediction | Training script, serialized Random Forest, validation schema, inference service, risk bands, and limitation disclosure exist | **COMPLETE** |
 | Assistant grounded in authorized data | Endpoint/service and tests exist; each role's data boundary and no-fabrication behavior need live verification | **PARTIALLY COMPLETE** |
 
