@@ -1,6 +1,6 @@
 # FlowGrid Project Completion Audit
 
-**Audit date:** 5 November 2026  
+**Audit date:** 6 November 2026
 **Scope:** Repository comparison against the FlowGrid master completion prompt  
 **Classification:** `COMPLETE`, `PARTIALLY COMPLETE`, `BROKEN`, `MISSING`, or
 `NEEDS MANUAL VERIFICATION`
@@ -20,25 +20,20 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- Backend automated tests currently pass: **317 passed**.
+- Backend automated tests currently pass: **320 passed**.
 - Frontend tests currently report **41 passed and 8 skipped** because the live
   backend integration server was not running.
 - The frontend production build succeeds.
 
-The project is **not yet complete under the master prompt's definition of done**.
-The most important remaining work is:
+The five fixed Phase 3 workflow surfaces are implemented and covered by
+automated tests. Overall release readiness still requires manual/runtime
+verification:
 
-1. Make production database initialization migration-driven rather than relying
-   on `create_all()` and startup seeding.
-2. Fix and verify the Docker image's missing runtime assets and migration
-   startup behavior.
-3. Perform live end-to-end testing against a disposable database.
-4. Complete route recommendation, predictive inventory, and production-grade
-   operational reporting.
-5. Complete security hardening for secret enforcement, rate limiting, login
-   abuse protection, and dependency review.
-6. Add deployment configuration and verify SPA routing and production API
-   configuration.
+1. Perform live end-to-end testing against a disposable PostgreSQL database.
+2. Verify Docker startup, migration execution, ML artifact loading, and SPA
+   hosting/fallback behavior.
+3. Run a current dependency vulnerability scan and production authorization
+   matrix.
 
 ---
 
@@ -46,12 +41,13 @@ The most important remaining work is:
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 317 passed, existing dependency warnings | **COMPLETE** |
-| Backend test collection | 317 tests collected | **COMPLETE** |
+| Backend test suite | 320 passed, existing dependency warnings | **COMPLETE** |
+| Backend test collection | 320 tests collected | **COMPLETE** |
 | Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
 | Git worktree inspection | README was modified; no unrelated changes observed | **NEEDS MANUAL VERIFICATION** |
-| Clean PostgreSQL migration run | Not performed; Alembic graph validated with one head | **NEEDS MANUAL VERIFICATION** |
+| Alembic graph | One head (`9a6f2d8e1c44`) | **COMPLETE** |
+| Clean PostgreSQL migration run | Not performed | **NEEDS MANUAL VERIFICATION** |
 | Live backend/frontend workflow | Not performed in this audit | **NEEDS MANUAL VERIFICATION** |
 | Production container startup | Entrypoint and packaging updated; Docker engine unavailable for runtime verification | **NEEDS MANUAL VERIFICATION** |
 
@@ -87,10 +83,11 @@ Starlette/httpx stack; they did not fail the suite.
 | Requested feature | Finding | Status |
 |---|---|---|
 | Intelligent fleet monitoring | Dashboard, fleet records, assignments, and tracking support exist; real-data behavior needs live verification | **PARTIALLY COMPLETE** |
-| Intelligent route recommendation | Route and simulator features exist, but a clearly defined authorized recommendation engine is not verified | **PARTIALLY COMPLETE** |
-| Predictive inventory intelligence | Threshold-based low-stock behavior exists; historical demand forecasting is not established | **PARTIALLY COMPLETE** |
+| Fleet maintenance management | Vehicle-linked schedule/history API and frontend workflow with RBAC are implemented and tested | **COMPLETE** |
+| Intelligent route recommendation | Authorized endpoint ranks active/planned stored routes with explanations and explicit estimate limitations | **COMPLETE** |
+| Predictive inventory intelligence | Authorized transparent baseline endpoint and frontend disclosure exist; historical demand is unavailable | **PARTIALLY COMPLETE** |
 | Proof of delivery | Driver/manager confirmation workflow, one-to-one persistence, lifecycle completion, duplicate protection, history review, and missing-confirmation review are implemented and tested; photo/signature upload is intentionally not claimed | **COMPLETE** |
-| Operational reports | Analytics and CSV export exist; a complete report/export surface and on-time metric verification need confirmation | **PARTIALLY COMPLETE** |
+| Operational reports | Authenticated shipment, inventory, and fleet CSV exports include spreadsheet formula-injection protection | **COMPLETE** |
 | Delay prediction | Training script, serialized Random Forest, validation schema, inference service, risk bands, and limitation disclosure exist | **COMPLETE** |
 | Assistant grounded in authorized data | Endpoint/service and tests exist; each role's data boundary and no-fabrication behavior need live verification | **PARTIALLY COMPLETE** |
 
@@ -135,7 +132,8 @@ Starlette/httpx stack; they did not fail the suite.
 - SQLAlchemy models exist for users, warehouses, products, inventory, drivers,
   vehicles, shipments, routes, and tracking.
 - Alembic revisions exist for core logistics tables, shipments, tracking/history,
-  routes, and estimated delivery timestamps.
+  routes, estimated delivery timestamps, delivery confirmations, and vehicle
+  maintenance.
 - SQLite is supported for local/test operation.
 - PostgreSQL is configured through `DATABASE_URL`.
 
@@ -149,8 +147,9 @@ Starlette/httpx stack; they did not fail the suite.
 4. Foreign keys, indexes, cascades, and rollback behavior require a disposable
    database verification pass.
 
-**Overall status: `PARTIALLY COMPLETE`; migration/seed separation is implemented,
-but a clean PostgreSQL run remains to be verified.**
+**Overall status: `PARTIALLY COMPLETE`; migration/seed separation and a
+single-head migration graph are verified, but a clean PostgreSQL run remains to
+be verified.**
 
 ---
 
@@ -280,22 +279,18 @@ prompt requires more than unit/in-process coverage:
 
 ### Priority 0 — release blockers
 
-1. Fix Docker packaging for scripts, ML artifacts, and required runtime files.
-2. Define migration-first startup for deployment and separate development
-   seeding from production startup.
+1. Run clean PostgreSQL migration and persistence verification.
+2. Verify Docker packaging/startup with migrations and the ML artifact.
 3. Enforce production configuration: strong secret, non-debug mode, explicit
-   database URL, and safe CORS.
-4. Run clean PostgreSQL migration and persistence verification.
-5. Replace the in-process failed-authentication limiter with shared storage for
+   database URL, and safe CORS in a deployment environment.
+4. Replace the in-process failed-authentication limiter with shared storage for
    multi-worker deployment.
 
 ### Priority 1 — critical workflow completeness
 
-1. Verify and strengthen assistant role boundaries and no-fabrication behavior.
-2. Verify Rescue Center recommendations and manager approval behavior.
-3. Verify route recommendation semantics and clearly distinguish estimates from
-   real road routing.
-4. Add live end-to-end workflow tests using a disposable database.
+1. Verify assistant role boundaries and no-fabrication behavior live.
+2. Verify Rescue Center and all five Phase 3 workflows live.
+3. Add live end-to-end workflow tests using a disposable database.
 
 ### Priority 2 — production quality
 
@@ -309,11 +304,10 @@ prompt requires more than unit/in-process coverage:
 
 ### Priority 3 — intelligent operations
 
-1. Add transparent historical inventory trends and forecasting only when enough
-   real data exists.
+1. Add historical inventory trends and forecasting only when enough real data
+   exists.
 2. Add model evaluation/calibration reports and monitoring.
-3. Add operational report exports with documented metric definitions.
-4. Add real telemetry integration only when a source is available; do not
+3. Add real telemetry integration only when a source is available; do not
    invent GPS locations.
 
 ---

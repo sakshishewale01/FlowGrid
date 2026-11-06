@@ -36,6 +36,10 @@ export const inventoryApi = {
     return apiClient.get(`/api/v1/inventory/${inventoryId}`);
   },
 
+  async getForecast(inventoryId, horizonDays = 30) {
+    return apiClient.get(`/api/v1/inventory/${inventoryId}/forecast?horizon_days=${horizonDays}`);
+  },
+
   /**
    * Creates a new inventory record linking product to warehouse (ADMIN, MANAGER).
    */

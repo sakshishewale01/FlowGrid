@@ -33,6 +33,7 @@ implementation currently present in the repository, not only the original plan.
   - Driver records, license data, phone data, and availability
   - Vehicle records, types, capacity, and operational status
   - Driver and vehicle assignment workflows
+  - Vehicle maintenance schedules, due dates, statuses, and history
 - **Shipment operations**
   - Shipment creation, listing, detail, update, and assignment
   - Lifecycle state-machine validation
@@ -46,10 +47,15 @@ implementation currently present in the repository, not only the original plan.
   - Shipment-to-route allocation
   - Tracking events and immutable status history
   - Authenticated real-time shipment tracking over WebSocket
+  - Explainable route recommendations ranked from stored active/planned corridors
 - **Analytics**
   - Overview KPIs
   - Shipment, warehouse, inventory, route, driver, and vehicle analytics
   - Operational risk and low-stock indicators
+  - Authenticated shipment, inventory, and fleet CSV report exports with spreadsheet-safe cells
+- **Phase 3 decision-support workflows**
+  - Inventory planning baseline endpoint with explicit insufficient-history disclosure
+  - Frontend route recommendation, inventory forecast, and fleet maintenance workflows
 - **AI-ready data pipeline**
   - Dataset generation from operational records
   - Feature extraction and engineering
@@ -88,7 +94,7 @@ implementation currently present in the repository, not only the original plan.
   - PostgreSQL configuration through `DATABASE_URL`
   - SQLite-compatible local/test operation
   - Alembic migration history for core logistics, shipments, tracking, routes,
-    and estimated delivery timestamps
+    estimated delivery timestamps, and vehicle maintenance
   - Development seed data and demo accounts
 
 ### Prototype and operational limitations
@@ -98,6 +104,11 @@ implementation currently present in the repository, not only the original plan.
   dataset and must not be interpreted as real-world Indian freight history.
 - The frontend integration tests that call `http://127.0.0.1:8000` are skipped
   when the backend server is not running.
+- Inventory planning is a transparent prototype: the current schema has no
+  historical demand observations, so it uses the configured reorder level as a
+  planning baseline and does not claim forecast accuracy.
+- Route recommendations rank stored estimates only; they do not use traffic,
+  GPS, telemetry, or road-network optimization.
 - Production deployment, observability, and cloud infrastructure are not
   included as a completed deployment target in this repository.
 
@@ -166,6 +177,11 @@ Additional application endpoints:
 - `POST /api/v1/shipments/{shipment_id}/delivery-confirmation` — authorized delivery confirmation
 - `GET /api/v1/shipments/delivery-confirmations/history` — manager/admin delivery history
 - `GET /api/v1/shipments/delivery-confirmations/missing` — delivered shipments without confirmation
+- `GET /api/v1/vehicles/{vehicle_id}/maintenance` — maintenance schedule/history
+- `POST /api/v1/vehicles/{vehicle_id}/maintenance` — manager/admin maintenance scheduling
+- `POST /api/v1/routes/recommendations` — explainable stored-route recommendations
+- `GET /api/v1/inventory/{inventory_id}/forecast` — transparent inventory planning baseline
+- `GET /api/v1/analytics/reports.csv` — authenticated shipment, inventory, or fleet CSV report
 - `/docs` — Swagger UI
 - `/redoc` — ReDoc
 
@@ -283,7 +299,7 @@ cd backend
 pytest -v
 ```
 
-The current suite contains **317 collected tests** covering authentication,
+The current suite contains **320 collected tests** covering authentication,
 RBAC, validation, models, CRUD workflows, analytics, shipment transitions,
 tracking, WebSockets, pipeline behavior, and ML inference.
 
@@ -298,11 +314,13 @@ npm run lint
 
 Latest repository verification:
 
-- Backend: **317 tests**, all passing with existing dependency deprecation warnings
+- Backend: **320 tests**, all passing with existing dependency deprecation warnings
 - Frontend: **49 tests**, **41 passed** and **8 skipped** because the backend
   integration server was not running
 - Frontend production build: **successful**
 - Build output includes a non-blocking bundle-size warning for the main chunk
+- Frontend lint reports existing repository warnings; changed files have no new
+  lint errors
 
 ---
 

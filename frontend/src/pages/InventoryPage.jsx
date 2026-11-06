@@ -34,6 +34,9 @@ export default function InventoryPage() {
     mode: 'adjust',
     item: null,
   });
+  const [forecast, setForecast] = useState(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastError, setForecastError] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -112,6 +115,18 @@ export default function InventoryPage() {
   const handleSuccess = () => {
     toast.success('Inventory balance updated successfully');
     fetchData();
+  };
+
+  const handleForecast = async (item) => {
+    setForecastLoading(true);
+    setForecastError(null);
+    try {
+      setForecast(await inventoryApi.getForecast(item.id));
+    } catch (err) {
+      setForecastError(formatErrorMessage(err));
+    } finally {
+      setForecastLoading(false);
+    }
   };
 
   const columns = useMemo(() => [
@@ -203,6 +218,9 @@ export default function InventoryPage() {
               </button>
             </>
           )}
+          <button type="button" className="btn-action outline" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); handleForecast(item); }}>
+            Forecast
+          </button>
           {!isManagerOrAdmin && (
             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Read-only</span>
           )}
@@ -343,6 +361,15 @@ export default function InventoryPage() {
           />
         }
       />
+      {forecastLoading && <div className="loading-state" role="status">Loading inventory planning baseline…</div>}
+          {forecastError && <div className="auth-alert error" role="alert">{forecastError}</div>}
+          {forecast && (
+            <section className="panel-card" style={{ marginTop: '16px', padding: '16px' }} aria-label="Inventory forecast result">
+              <h3>Planning baseline for inventory #{forecast.inventory_id}</h3>
+              <p>Baseline quantity for {forecast.horizon_days} days: <strong>{forecast.forecast_quantity}</strong>. Reorder recommended: <strong>{forecast.reorder_recommended ? 'Yes' : 'No'}</strong>.</p>
+              <p className="table-secondary-text">{forecast.explanation.join(' ')} {forecast.limitations.join(' ')}</p>
+            </section>
+      )}
 
       {/* Stock Adjust / Transfer / Create Modal */}
       <StockAdjustModal

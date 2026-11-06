@@ -22,8 +22,56 @@ from app.schemas.vehicle import (
     VehicleUpdate,
 )
 from app.services.vehicle_service import vehicle_service
+from app.schemas.vehicle_maintenance import (
+    VehicleMaintenanceCreate,
+    VehicleMaintenanceResponse,
+    VehicleMaintenanceUpdate,
+)
+from app.services.vehicle_maintenance_service import vehicle_maintenance_service
 
 router = APIRouter()
+
+
+@router.get(
+    "/{vehicle_id}/maintenance",
+    response_model=List[VehicleMaintenanceResponse],
+    summary="List vehicle maintenance history",
+)
+def list_vehicle_maintenance(
+    vehicle_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[VehicleMaintenanceResponse]:
+    return vehicle_maintenance_service.list_records(db, vehicle_id)
+
+
+@router.post(
+    "/{vehicle_id}/maintenance",
+    response_model=VehicleMaintenanceResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Schedule vehicle maintenance",
+)
+def create_vehicle_maintenance(
+    vehicle_id: int,
+    payload: VehicleMaintenanceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER])),
+) -> VehicleMaintenanceResponse:
+    return vehicle_maintenance_service.create_record(db, vehicle_id, payload)
+
+
+@router.patch(
+    "/maintenance/{record_id}",
+    response_model=VehicleMaintenanceResponse,
+    summary="Update vehicle maintenance",
+)
+def update_vehicle_maintenance(
+    record_id: int,
+    payload: VehicleMaintenanceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER])),
+) -> VehicleMaintenanceResponse:
+    return vehicle_maintenance_service.update_record(db, record_id, payload)
 
 
 @router.post(

@@ -11,7 +11,8 @@ Permissions:
 
 from datetime import date
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
@@ -29,9 +30,36 @@ from app.schemas.analytics import (
     ShipmentDelayRiskResponse,
 )
 from app.services.analytics_service import analytics_service
+from app.services.operational_report_service import operational_report_service
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/reports.csv",
+    response_class=StreamingResponse,
+    summary="Export an operational CSV report",
+    description="Exports shipment, inventory, or fleet records with spreadsheet formula injection protection.",
+)
+def export_operational_report(
+    report_type: str = Query("shipments", pattern="^(shipments|inventory|fleet)$"),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="start_date must be on or before end_date",
+        )
+    content = operational_report_service.build(db, report_type, start_date, end_date)
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="flowgrid-{report_type}-report.csv"'},
+    )
 
 
 @router.get(
@@ -257,4 +285,3 @@ def get_single_shipment_delay_risk(
     return analytics_service.get_single_shipment_delay_risk(
         db, shipment_id=shipment_id
     )
-

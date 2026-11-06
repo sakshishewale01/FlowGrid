@@ -26,6 +26,11 @@ export default function VehiclesPage() {
     vehicle: null,
     isStatusOnly: false,
   });
+  const [maintenanceVehicle, setMaintenanceVehicle] = useState(null);
+  const [maintenanceRecords, setMaintenanceRecords] = useState([]);
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState(null);
+  const [maintenanceForm, setMaintenanceForm] = useState({ service_type: '', scheduled_date: '', description: '' });
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -78,6 +83,35 @@ export default function VehiclesPage() {
     fetchVehicles();
   };
 
+  const handleOpenMaintenance = async (vehicle) => {
+    setMaintenanceVehicle(vehicle);
+    setMaintenanceLoading(true);
+    setMaintenanceError(null);
+    try {
+      setMaintenanceRecords(await vehiclesApi.listMaintenance(vehicle.id));
+    } catch (err) {
+      setMaintenanceError(formatErrorMessage(err));
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
+
+  const handleScheduleMaintenance = async (event) => {
+    event.preventDefault();
+    setMaintenanceLoading(true);
+    setMaintenanceError(null);
+    try {
+      await vehiclesApi.scheduleMaintenance(maintenanceVehicle.id, maintenanceForm);
+      setMaintenanceRecords(await vehiclesApi.listMaintenance(maintenanceVehicle.id));
+      setMaintenanceForm({ service_type: '', scheduled_date: '', description: '' });
+      toast.success('Maintenance scheduled successfully');
+    } catch (err) {
+      setMaintenanceError(formatErrorMessage(err));
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  };
+
   const columns = useMemo(() => [
     {
       key: 'id',
@@ -128,6 +162,14 @@ export default function VehiclesPage() {
         <div className="row-actions" style={{ justifyContent: 'flex-end', gap: '8px' }}>
           {isManagerOrAdmin && (
             <>
+              <button
+                type="button"
+                className="btn-action outline"
+                style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                onClick={(e) => { e.stopPropagation(); handleOpenMaintenance(v); }}
+              >
+                Maintenance
+              </button>
               <button
                 type="button"
                 className="btn-action outline"
@@ -262,6 +304,34 @@ export default function VehiclesPage() {
           />
         }
       />
+      {maintenanceVehicle && (
+            <section className="panel-card" style={{ marginTop: '16px', padding: '16px' }} aria-label="Vehicle maintenance">
+              <div className="panel-card-header">
+                <div>
+                  <h2>Maintenance: {maintenanceVehicle.registration_number}</h2>
+                  <p className="table-secondary-text">Scheduled service and completed maintenance history.</p>
+                </div>
+                <button type="button" className="btn-action outline" onClick={() => setMaintenanceVehicle(null)}>Close</button>
+              </div>
+              {isManagerOrAdmin && (
+                <form onSubmit={handleScheduleMaintenance} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '12px 0' }}>
+                  <input required aria-label="Service type" placeholder="Service type" value={maintenanceForm.service_type} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, service_type: e.target.value })} />
+                  <input required aria-label="Scheduled date" type="date" value={maintenanceForm.scheduled_date} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, scheduled_date: e.target.value })} />
+                  <input aria-label="Maintenance description" placeholder="Description (optional)" value={maintenanceForm.description} onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })} />
+                  <button type="submit" className="btn-action primary" disabled={maintenanceLoading}>Schedule service</button>
+                </form>
+              )}
+              {maintenanceError && <div className="auth-alert error" role="alert">{maintenanceError}</div>}
+              {maintenanceLoading && <div className="loading-state" role="status">Loading maintenance history…</div>}
+              {!maintenanceLoading && maintenanceRecords.length === 0 && <EmptyState title="No maintenance records" description="No scheduled or completed service is recorded for this vehicle." />}
+              {!maintenanceLoading && maintenanceRecords.map((record) => (
+                <div key={record.id} style={{ padding: '8px 0', borderTop: '1px solid rgba(148,163,184,.15)' }}>
+                  <strong>{record.service_type}</strong> <span className="table-secondary-text">{record.status} · due {record.scheduled_date}</span>
+                  {record.description && <div className="table-secondary-text">{record.description}</div>}
+                </div>
+              ))}
+            </section>
+      )}
 
       {/* Vehicle Modal */}
       <VehicleModal

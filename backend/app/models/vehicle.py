@@ -7,9 +7,13 @@ Represents transport vehicles, trucks, and fleet units in the logistics network.
 from datetime import datetime
 from decimal import Decimal
 from sqlalchemy import String, Numeric, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List, TYPE_CHECKING
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.vehicle_maintenance import VehicleMaintenance
 
 
 class Vehicle(Base):
@@ -54,6 +58,13 @@ class Vehicle(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    maintenance_records: Mapped[List["VehicleMaintenance"]] = relationship(
+        "VehicleMaintenance",
+        back_populates="vehicle",
+        cascade="all, delete-orphan",
+        order_by="desc(VehicleMaintenance.scheduled_date)",
     )
 
     def __repr__(self) -> str:

@@ -11,6 +11,7 @@ from app.models.product import Product
 from app.models.inventory import Inventory
 from app.models.driver import Driver
 from app.models.vehicle import Vehicle
+from app.models.vehicle_maintenance import VehicleMaintenance
 from app.models.shipment import Shipment, ShipmentStatus
 from app.models.tracking import ShipmentStatusHistory, ShipmentTrackingEvent
 from app.models.route import Route, RouteStatus, RouteShipment
@@ -24,6 +25,7 @@ __all__ = [
     "Inventory",
     "Driver",
     "Vehicle",
+    "VehicleMaintenance",
     "Shipment",
     "ShipmentStatus",
     "ShipmentStatusHistory",

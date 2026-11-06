@@ -34,6 +34,10 @@ export const routesApi = {
     return apiClient.get(`/api/v1/routes?${params.toString()}`);
   },
 
+  async recommendRoutes(payload) {
+    return apiClient.post('/api/v1/routes/recommendations', payload);
+  },
+
   /**
    * Retrieves route by primary key ID.
    */

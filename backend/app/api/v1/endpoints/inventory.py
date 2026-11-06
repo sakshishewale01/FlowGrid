@@ -22,8 +22,24 @@ from app.schemas.inventory import (
     InventoryUpdate,
 )
 from app.services.inventory_service import inventory_service
+from app.schemas.inventory_forecast import InventoryForecastResponse
+from app.services.inventory_forecast_service import inventory_forecast_service
 
 router = APIRouter()
+
+
+@router.get(
+    "/{inventory_id}/forecast",
+    response_model=InventoryForecastResponse,
+    summary="Get transparent inventory forecast prototype",
+)
+def get_inventory_forecast(
+    inventory_id: int,
+    horizon_days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InventoryForecastResponse:
+    return inventory_forecast_service.forecast(db, inventory_id, horizon_days)
 
 
 @router.post(

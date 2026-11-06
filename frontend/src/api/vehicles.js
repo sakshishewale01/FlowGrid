@@ -36,6 +36,18 @@ export const vehiclesApi = {
     return apiClient.get(`/api/v1/vehicles/${vehicleId}`);
   },
 
+  async listMaintenance(vehicleId) {
+    return apiClient.get(`/api/v1/vehicles/${vehicleId}/maintenance`);
+  },
+
+  async scheduleMaintenance(vehicleId, payload) {
+    return apiClient.post(`/api/v1/vehicles/${vehicleId}/maintenance`, payload);
+  },
+
+  async updateMaintenance(recordId, payload) {
+    return apiClient.patch(`/api/v1/vehicles/maintenance/${recordId}`, payload);
+  },
+
   /**
    * Registers a new fleet vehicle (ADMIN, MANAGER).
    */

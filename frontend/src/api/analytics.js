@@ -95,7 +95,13 @@ export const analyticsApi = {
   async getShipmentDelayRisk(shipmentId) {
     return apiClient.get(`/api/v1/analytics/delay-risk/${shipmentId}`);
   },
+
+  async exportReport(reportType = 'shipments', { start_date, end_date } = {}) {
+    const params = new URLSearchParams({ report_type: reportType });
+    if (start_date) params.append('start_date', start_date);
+    if (end_date) params.append('end_date', end_date);
+    return apiClient.get(`/api/v1/analytics/reports.csv?${params.toString()}`);
+  },
 };
 
 export default analyticsApi;
-

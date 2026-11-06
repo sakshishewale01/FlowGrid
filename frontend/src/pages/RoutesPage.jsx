@@ -23,6 +23,10 @@ export default function RoutesPage() {
   // Modal control
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [recommendationInput, setRecommendationInput] = useState({ origin: '', destination: '', shipment_weight_kg: '' });
+  const [recommendations, setRecommendations] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState(null);
 
   const fetchRoutes = useCallback(async () => {
     setLoading(true);
@@ -71,6 +75,25 @@ export default function RoutesPage() {
   const handleSaved = (route, isEdit) => {
     toast.success(`Corridor "${route.name}" ${isEdit ? 'updated' : 'configured'} successfully`);
     fetchRoutes();
+  };
+
+  const handleRecommend = async (event) => {
+    event.preventDefault();
+    setRecommendationLoading(true);
+    setRecommendationError(null);
+    try {
+      const result = await routesApi.recommendRoutes({
+        ...recommendationInput,
+        shipment_weight_kg: recommendationInput.shipment_weight_kg
+          ? Number(recommendationInput.shipment_weight_kg)
+          : undefined,
+      });
+      setRecommendations(result);
+    } catch (err) {
+      setRecommendationError(formatErrorMessage(err));
+    } finally {
+      setRecommendationLoading(false);
+    }
   };
 
   const columns = useMemo(() => [
@@ -181,6 +204,34 @@ export default function RoutesPage() {
           </button>
         </div>
       )}
+
+      <section className="panel-card" style={{ marginBottom: '16px' }} aria-labelledby="route-recommendations-title">
+        <div className="panel-card-header">
+          <div>
+            <h2 id="route-recommendations-title">Route recommendation</h2>
+            <p className="table-secondary-text">Ranks stored active/planned corridors only; no traffic, GPS, or road-network data is fabricated.</p>
+          </div>
+        </div>
+        <form onSubmit={handleRecommend} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '12px 16px' }}>
+          <input required aria-label="Recommendation origin" placeholder="Origin" value={recommendationInput.origin} onChange={(e) => setRecommendationInput({ ...recommendationInput, origin: e.target.value })} />
+          <input required aria-label="Recommendation destination" placeholder="Destination" value={recommendationInput.destination} onChange={(e) => setRecommendationInput({ ...recommendationInput, destination: e.target.value })} />
+          <input aria-label="Shipment weight" type="number" min="0" placeholder="Weight kg (optional)" value={recommendationInput.shipment_weight_kg} onChange={(e) => setRecommendationInput({ ...recommendationInput, shipment_weight_kg: e.target.value })} />
+          <button type="submit" className="btn-action primary" disabled={recommendationLoading}>{recommendationLoading ? 'Ranking…' : 'Recommend route'}</button>
+        </form>
+        {recommendationError && <div className="auth-alert error" role="alert">{recommendationError}</div>}
+        {recommendations && (
+          <div style={{ padding: '0 16px 16px' }}>
+            {recommendations.recommendations.length === 0 ? <EmptyState title="No compatible routes found" description="Create or activate a corridor matching the requested endpoints." /> : recommendations.recommendations.map((item) => (
+              <div key={item.route_id} className="panel-card" style={{ padding: '10px', marginTop: '8px' }}>
+                <strong>{item.route_name}</strong> <span className="table-secondary-text">score {item.score}</span>
+                <div className="table-secondary-text">{item.origin} → {item.destination} · {item.estimated_duration ?? '—'}h estimated</div>
+                <div className="table-secondary-text">{item.explanation.join(' ')}</div>
+              </div>
+            ))}
+            <small className="table-secondary-text">{recommendations.limitations.join(' ')}</small>
+          </div>
+        )}
+      </section>
 
       {/* Filter and Search Bar */}
       <div className="filter-controls-bar">

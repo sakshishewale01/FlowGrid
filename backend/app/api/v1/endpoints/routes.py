@@ -27,8 +27,27 @@ from app.schemas.route import (
 )
 from app.schemas.shipment import ShipmentResponse
 from app.services.route_service import route_service
+from app.schemas.route_recommendation import (
+    RouteRecommendationRequest,
+    RouteRecommendationResponse,
+)
+from app.services.route_recommendation_service import route_recommendation_service
 
 router = APIRouter()
+
+
+@router.post(
+    "/recommendations",
+    response_model=RouteRecommendationResponse,
+    summary="Recommend stored routes",
+    description="Ranks active/planned stored routes using endpoint matches and stored estimates. It does not perform road-network optimization.",
+)
+def recommend_routes(
+    payload: RouteRecommendationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RouteRecommendationResponse:
+    return route_recommendation_service.recommend(db, payload)
 
 
 @router.post(
