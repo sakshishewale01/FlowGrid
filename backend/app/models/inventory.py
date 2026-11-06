@@ -5,7 +5,7 @@ Represents on-hand stock levels and reorder thresholds of a product at a specifi
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 from sqlalchemy import Integer, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.warehouse import Warehouse
     from app.models.product import Product
+    from app.models.inventory_movement import InventoryMovement
 
 
 class Inventory(Base):
@@ -57,6 +58,12 @@ class Inventory(Base):
     # Relationships
     warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="inventories")
     product: Mapped["Product"] = relationship("Product", back_populates="inventories")
+    movements: Mapped[List["InventoryMovement"]] = relationship(
+        "InventoryMovement",
+        back_populates="inventory",
+        cascade="all, delete-orphan",
+        order_by="desc(InventoryMovement.created_at)",
+    )
 
     def __repr__(self) -> str:
         return f"<Inventory id={self.id} warehouse_id={self.warehouse_id} product_id={self.product_id} qty={self.quantity}>"

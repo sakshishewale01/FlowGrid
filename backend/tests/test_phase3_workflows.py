@@ -242,3 +242,47 @@ def test_inventory_forecast_discloses_insufficient_history_and_report_is_csv(cli
     rows = list(csv.reader(io.StringIO(report.text)))
     assert rows[0][0] == "inventory_id"
     assert report.headers["content-type"].startswith("text/csv")
+
+
+def test_inventory_forecast_uses_recorded_movements_and_recommendations_are_protected(client):
+    headers = auth_headers(client)
+    warehouse = client.post(
+        "/api/v1/warehouses",
+        headers=headers,
+        json={"name": "P3 Forecast Hub", "location": "Chicago", "address": "2 Main", "capacity": 1000},
+    ).json()
+    product = client.post(
+        "/api/v1/products",
+        headers=headers,
+        json={"name": "P3 Forecast Product", "sku": "P3-FORECAST", "unit_price": 1},
+    ).json()
+    inventory = client.post(
+        "/api/v1/inventory",
+        headers=headers,
+        json={"warehouse_id": warehouse["id"], "product_id": product["id"], "quantity": 100, "reorder_level": 20},
+    ).json()
+    for quantity in (90, 80, 70):
+        response = client.patch(
+            f"/api/v1/inventory/{inventory['id']}",
+            headers=headers,
+            json={"quantity": quantity},
+        )
+        assert response.status_code == 200
+
+    forecast = client.get(f"/api/v1/inventory/{inventory['id']}/forecast?horizon_days=30", headers=headers)
+    assert forecast.status_code == 200
+    assert forecast.json()["data_sufficiency"] == "sufficient"
+    assert forecast.json()["average_daily_demand"] > 0
+    assert forecast.json()["movement_count"] >= 4
+    movements = client.get(f"/api/v1/inventory/{inventory['id']}/movements", headers=headers)
+    assert movements.status_code == 200
+    assert len(movements.json()) >= 4
+
+    recommendations = client.get("/api/v1/inventory/recommendations?horizon_days=220", headers=headers)
+    assert recommendations.status_code == 200
+    recommendation = next(item for item in recommendations.json() if item["inventory_id"] == inventory["id"])
+    assert recommendation["recommendation_status"] == "REORDER"
+
+    viewer_headers = auth_headers(client, "VIEWER")
+    forbidden = client.get("/api/v1/inventory/recommendations", headers=viewer_headers)
+    assert forbidden.status_code == 403

@@ -29,6 +29,8 @@ implementation currently present in the repository, not only the original plan.
   - Product catalog and SKU management
   - Warehouse-level inventory records
   - Stock adjustments, reorder levels, and low-stock detection
+  - Auditable inventory movement history, trend summaries, and transparent demand estimates
+  - Manager/admin inventory reorder recommendation review with insufficient-history fallback
 - **Fleet management**
   - Driver records, license data, phone data, and availability
   - Vehicle records, types, capacity, and operational status
@@ -57,7 +59,7 @@ implementation currently present in the repository, not only the original plan.
   - Authenticated shipment, inventory, and fleet CSV report exports with spreadsheet-safe cells
 - **Phase 3 decision-support workflows**
   - Inventory planning baseline endpoint with explicit insufficient-history disclosure
-  - Frontend route recommendation approval, inventory forecast, and fleet maintenance workflows
+  - Frontend route recommendation approval, inventory trends/recommendations, and fleet maintenance workflows
 - **AI-ready data pipeline**
   - Dataset generation from operational records
   - Feature extraction and engineering
@@ -106,9 +108,10 @@ implementation currently present in the repository, not only the original plan.
   dataset and must not be interpreted as real-world Indian freight history.
 - The frontend integration tests that call `http://127.0.0.1:8000` are skipped
   when the backend server is not running.
-- Inventory planning is a transparent prototype: the current schema has no
-  historical demand observations, so it uses the configured reorder level as a
-  planning baseline and does not claim forecast accuracy.
+- Inventory planning uses recorded quantity movements only. With fewer than
+  three movements containing outbound demand, it falls back to the configured
+  reorder level; with sufficient history it uses a simple 90-day average-rate
+  estimate and does not claim model accuracy.
 - Route recommendations rank stored estimates only; they do not use traffic,
   GPS, telemetry, or road-network optimization.
 - Production deployment, observability, and cloud infrastructure are not
@@ -185,7 +188,9 @@ Additional application endpoints:
 - `GET /api/v1/vehicles/maintenance/due?days=30` — authenticated upcoming/overdue maintenance
 - `POST /api/v1/routes/recommendations` — explainable stored-route recommendations
 - `POST /api/v1/routes/recommendations/{route_id}/approve` — manager/admin approval applying a reviewed route and optional vehicle assignment
-- `GET /api/v1/inventory/{inventory_id}/forecast` — transparent inventory planning baseline
+- `GET /api/v1/inventory/{inventory_id}/forecast?horizon_days=30` — transparent trend-based demand estimate or threshold fallback
+- `GET /api/v1/inventory/{inventory_id}/movements` — recorded inventory movement history
+- `GET /api/v1/inventory/recommendations?horizon_days=30` — manager/admin reorder recommendation review
 - `GET /api/v1/analytics/reports.csv` — authenticated shipment, inventory, or fleet CSV report
 - `/docs` — Swagger UI
 - `/redoc` — ReDoc

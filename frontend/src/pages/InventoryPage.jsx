@@ -37,6 +37,8 @@ export default function InventoryPage() {
   const [forecast, setForecast] = useState(null);
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastError, setForecastError] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationError, setRecommendationError] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -51,12 +53,20 @@ export default function InventoryPage() {
       if (invRes.status === 'fulfilled') setInventory(invRes.value || []);
       if (whRes.status === 'fulfilled') setWarehouses(whRes.value || []);
       if (prodRes.status === 'fulfilled') setProducts(prodRes.value || []);
+      if (isManagerOrAdmin) {
+        try {
+          setRecommendations(await inventoryApi.listRecommendations());
+          setRecommendationError(null);
+        } catch (err) {
+          setRecommendationError(formatErrorMessage(err));
+        }
+      }
     } catch (err) {
       setError(formatErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isManagerOrAdmin]);
 
   useEffect(() => {
     fetchData();
@@ -366,9 +376,24 @@ export default function InventoryPage() {
           {forecast && (
             <section className="panel-card" style={{ marginTop: '16px', padding: '16px' }} aria-label="Inventory forecast result">
               <h3>Planning baseline for inventory #{forecast.inventory_id}</h3>
-              <p>Baseline quantity for {forecast.horizon_days} days: <strong>{forecast.forecast_quantity}</strong>. Reorder recommended: <strong>{forecast.reorder_recommended ? 'Yes' : 'No'}</strong>.</p>
+              <p>{forecast.data_sufficiency === 'sufficient' ? 'Estimated demand trend' : 'Threshold fallback'} for {forecast.horizon_days} days: <strong>{forecast.forecast_quantity}</strong>. Reorder recommended: <strong>{forecast.reorder_recommended ? 'Yes' : 'No'}</strong>.</p>
+              <p className="table-secondary-text">Recorded movements: {forecast.movement_count} · Average outbound demand: {forecast.average_daily_demand} units/day · Projected stockout: {forecast.projected_stockout_days ?? 'not estimated'} days</p>
               <p className="table-secondary-text">{forecast.explanation.join(' ')} {forecast.limitations.join(' ')}</p>
             </section>
+      )}
+      {isManagerOrAdmin && (
+        <section className="panel-card" style={{ marginTop: '16px', padding: '16px' }} aria-label="Inventory reorder recommendations">
+          <h3>Inventory recommendations</h3>
+          {recommendationError && <div className="auth-alert error" role="alert">{recommendationError}</div>}
+          {!recommendationError && recommendations.length === 0 && <EmptyState title="No inventory recommendations" description="No inventory records are available for review." />}
+          {recommendations.map((item) => (
+            <div key={item.inventory_id} style={{ padding: '8px 0', borderTop: '1px solid rgba(148,163,184,.15)' }}>
+              <strong>Inventory #{item.inventory_id}: {item.recommendation_status}</strong>
+              <span className="table-secondary-text"> · recommended quantity {item.recommended_reorder_quantity}</span>
+              <div className="table-secondary-text">{item.explanation.join(' ')}</div>
+            </div>
+          ))}
+        </section>
       )}
 
       {/* Stock Adjust / Transfer / Create Modal */}

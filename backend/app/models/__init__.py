@@ -9,6 +9,7 @@ from app.models.user import User, UserRole
 from app.models.warehouse import Warehouse
 from app.models.product import Product
 from app.models.inventory import Inventory
+from app.models.inventory_movement import InventoryMovement
 from app.models.driver import Driver
 from app.models.vehicle import Vehicle
 from app.models.vehicle_maintenance import VehicleMaintenance
@@ -23,6 +24,7 @@ __all__ = [
     "Warehouse",
     "Product",
     "Inventory",
+    "InventoryMovement",
     "Driver",
     "Vehicle",
     "VehicleMaintenance",

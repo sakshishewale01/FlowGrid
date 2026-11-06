@@ -24,6 +24,8 @@ test('Management APIs: Inventory adjustment and listing operations are available
   assert.equal(typeof inventoryApi.createInventory, 'function');
   assert.equal(typeof inventoryApi.updateInventory, 'function');
   assert.equal(typeof inventoryApi.deleteInventory, 'function');
+  assert.equal(typeof inventoryApi.listMovements, 'function');
+  assert.equal(typeof inventoryApi.listRecommendations, 'function');
 });
 
 test('Management APIs: Drivers availability and status operations are available', () => {

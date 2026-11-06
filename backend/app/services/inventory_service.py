@@ -14,6 +14,7 @@ from app.repositories.inventory_repository import inventory_repository
 from app.repositories.warehouse_repository import warehouse_repository
 from app.repositories.product_repository import product_repository
 from app.schemas.inventory import InventoryCreate, InventoryUpdate
+from app.models.inventory_movement import InventoryMovement
 
 
 class InventoryService:
@@ -97,7 +98,20 @@ class InventoryService:
             quantity=payload.quantity,
             reorder_level=payload.reorder_level,
         )
-        return self.repository.create(db, inventory)
+        db.add(inventory)
+        db.flush()
+        db.add(
+            InventoryMovement(
+                inventory_id=inventory.id,
+                quantity_delta=payload.quantity,
+                quantity_before=0,
+                quantity_after=payload.quantity,
+                reason="INITIAL_STOCK",
+            )
+        )
+        db.commit()
+        db.refresh(inventory)
+        return inventory
 
     def get_inventory(self, db: Session, inventory_id: int) -> Inventory:
         """
@@ -157,6 +171,18 @@ class InventoryService:
                     )
 
         if update_data:
+            if "quantity" in update_data and update_data["quantity"] != inventory.quantity:
+                before = inventory.quantity
+                after = update_data["quantity"]
+                db.add(
+                    InventoryMovement(
+                        inventory_id=inventory.id,
+                        quantity_delta=after - before,
+                        quantity_before=before,
+                        quantity_after=after,
+                        reason="STOCK_ADJUSTMENT",
+                    )
+                )
             inventory = self.repository.update(db, inventory, update_data)
         return inventory
 

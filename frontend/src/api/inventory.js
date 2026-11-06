@@ -40,6 +40,14 @@ export const inventoryApi = {
     return apiClient.get(`/api/v1/inventory/${inventoryId}/forecast?horizon_days=${horizonDays}`);
   },
 
+  async listMovements(inventoryId) {
+    return apiClient.get(`/api/v1/inventory/${inventoryId}/movements`);
+  },
+
+  async listRecommendations(horizonDays = 30) {
+    return apiClient.get(`/api/v1/inventory/recommendations?horizon_days=${horizonDays}`);
+  },
+
   /**
    * Creates a new inventory record linking product to warehouse (ADMIN, MANAGER).
    */

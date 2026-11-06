@@ -22,10 +22,45 @@ from app.schemas.inventory import (
     InventoryUpdate,
 )
 from app.services.inventory_service import inventory_service
-from app.schemas.inventory_forecast import InventoryForecastResponse
+from app.schemas.inventory_forecast import (
+    InventoryForecastResponse,
+    InventoryRecommendationResponse,
+    InventoryMovementResponse,
+)
 from app.services.inventory_forecast_service import inventory_forecast_service
+from app.repositories.inventory_movement_repository import inventory_movement_repository
+from app.models.inventory import Inventory
 
 router = APIRouter()
+
+
+@router.get(
+    "/recommendations",
+    response_model=List[InventoryRecommendationResponse],
+    summary="Review inventory reorder recommendations",
+)
+def get_inventory_recommendations(
+    horizon_days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.ADMIN, UserRole.MANAGER])),
+) -> List[InventoryRecommendationResponse]:
+    return inventory_forecast_service.recommendations(db, horizon_days)
+
+
+@router.get(
+    "/{inventory_id}/movements",
+    response_model=List[InventoryMovementResponse],
+    summary="Get inventory movement history",
+)
+def get_inventory_movements(
+    inventory_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[InventoryMovementResponse]:
+    if db.get(Inventory, inventory_id) is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory record not found")
+    return inventory_movement_repository.list_for_inventory(db, inventory_id)
 
 
 @router.get(
