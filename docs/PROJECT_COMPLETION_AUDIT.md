@@ -35,6 +35,14 @@ verification:
 3. Run a current dependency vulnerability scan and production authorization
    matrix.
 
+Phase 3.6 regression verification was performed on 6 November 2026. The
+backend and frontend automated suites pass, Alembic upgrade/rollback was
+verified on an empty SQLite verification database, and the frontend login page
+was served successfully in a local browser. PostgreSQL, Docker runtime, and
+the complete multi-role browser journeys could not be verified because the
+local Docker Desktop Linux engine was unavailable and the frontend integration
+server was not running during the automated integration checks.
+
 ---
 
 ## 2. Verification performed
@@ -47,9 +55,13 @@ verification:
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
 | Git worktree inspection | Phase 3.5 reporting changes are scoped; generated local database restored after tests | **COMPLETE** |
 | Alembic graph | One head (`a2b3c4d5e6f7`) | **COMPLETE** |
-| Clean PostgreSQL migration run | Not performed | **NEEDS MANUAL VERIFICATION** |
-| Live backend/frontend workflow | Not performed in this audit | **NEEDS MANUAL VERIFICATION** |
-| Production container startup | Entrypoint and packaging updated; Docker engine unavailable for runtime verification | **NEEDS MANUAL VERIFICATION** |
+| Empty-database Alembic upgrade | All revisions applied to `a2b3c4d5e6f7` on disposable SQLite verification DB | **COMPLETE** |
+| Alembic rollback/re-upgrade | Downgrade to `9a6f2d8e1c44` and re-upgrade to head succeeded on disposable SQLite DB | **COMPLETE** |
+| Clean PostgreSQL migration run | Docker Desktop Linux engine unavailable; no PostgreSQL container could be started | **NEEDS MANUAL VERIFICATION** |
+| Live backend/frontend workflow | Frontend login page loaded; critical journeys and external API integration were not completed | **NEEDS MANUAL VERIFICATION** |
+| Production container startup | Entrypoint and packaging inspected; Docker runtime unavailable | **NEEDS MANUAL VERIFICATION** |
+| Frontend dependency audit | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities | **COMPLETE** |
+| Backend dependency audit | `pip-audit` unavailable in the environment | **NEEDS MANUAL VERIFICATION** |
 
 The backend warnings are deprecation warnings from the installed FastAPI/
 Starlette/httpx stack; they did not fail the suite.

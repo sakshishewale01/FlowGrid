@@ -309,7 +309,7 @@ cd backend
 pytest -v
 ```
 
-The current suite contains **320 collected tests** covering authentication,
+The current suite contains **326 collected tests** covering authentication,
 RBAC, validation, models, CRUD workflows, analytics, shipment transitions,
 tracking, WebSockets, pipeline behavior, and ML inference.
 
@@ -324,7 +324,7 @@ npm run lint
 
 Latest repository verification:
 
-- Backend: **320 tests**, all passing with existing dependency deprecation warnings
+- Backend: **326 tests**, all passing with existing dependency deprecation warnings
 - Frontend: **49 tests**, **41 passed** and **8 skipped** because the backend
   integration server was not running
 - Frontend production build: **successful**
