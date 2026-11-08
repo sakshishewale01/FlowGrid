@@ -121,7 +121,6 @@ test('Integration: User registration succeeds and prevents duplicates', async (t
       name: 'Integration Operator',
       email: newEmail,
       password: 'SecurePassword123!',
-      role: 'VIEWER',
     }),
   });
 
@@ -139,7 +138,6 @@ test('Integration: User registration succeeds and prevents duplicates', async (t
       name: 'Integration Operator Duplicate',
       email: newEmail,
       password: 'SecurePassword123!',
-      role: 'VIEWER',
     }),
   });
 
@@ -157,7 +155,6 @@ test('Integration: Registration rejects short password (< 6 chars)', async (t) =
       name: 'Bad Password User',
       email: `badpass_${Date.now()}@flowgrid.io`,
       password: '123',
-      role: 'VIEWER',
     }),
   });
 

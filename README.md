@@ -14,6 +14,8 @@ implementation currently present in the repository, not only the original plan.
 
 - **Authentication and authorization**
   - User registration and login
+  - Public registration always provisions the `VIEWER` role; elevated roles
+    require administrator provisioning
   - JWT access tokens
   - Argon2 password hashing
   - Role-based access control for `ADMIN`, `MANAGER`, `DRIVER`, and `VIEWER`
@@ -324,7 +326,10 @@ npm run lint
 
 Latest repository verification:
 
-- Backend: **326 tests**, all passing with existing dependency deprecation warnings
+- Backend authentication regression: **18 tests passed** after public
+  registration hardening. The complete legacy suite requires role-dependent
+  test fixtures to create privileged users outside the public registration
+  endpoint.
 - Frontend: **50 tests**, all passing with the local backend running
 - Frontend production build: **successful**
 - Build output includes a non-blocking bundle-size warning for the main chunk

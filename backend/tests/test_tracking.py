@@ -30,6 +30,7 @@ from app.main import app
 from app.models.shipment import ShipmentStatus
 from app.services.shipment_service import shipment_service
 from app.schemas.shipment import ShipmentStatusUpdate
+from .auth_test_utils import promote_test_user
 
 # ------------------------------------------------------------------------------
 # In-Memory SQLite Test Engine & DB Setup
@@ -81,6 +82,7 @@ def get_auth_headers_for_role(client: TestClient, email: str, role: str) -> dict
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},

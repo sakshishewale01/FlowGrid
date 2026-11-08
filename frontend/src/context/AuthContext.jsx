@@ -99,10 +99,10 @@ export const AuthProvider = ({ children }) => {
   /**
    * Register a new user account.
    */
-  const register = async ({ name, email, password, role = 'VIEWER' }) => {
+  const register = async ({ name, email, password }) => {
     setAuthError(null);
     try {
-      const createdUser = await authApi.register({ name, email, password, role });
+      const createdUser = await authApi.register({ name, email, password });
       return { success: true, user: createdUser };
     } catch (err) {
       setAuthError(err.message);
@@ -158,6 +158,5 @@ export const AuthProvider = ({ children }) => {
 
 export { useAuth } from './useAuth';
 export default AuthContext;
-
 
 

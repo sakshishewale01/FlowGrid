@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.core.rate_limit import rate_limit_authentication
 from app.core.security import create_access_token, get_password_hash, verify_password
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import TokenResponse, UserLoginRequest, UserRegisterRequest
 from app.schemas.user import UserResponse
 
@@ -61,7 +61,7 @@ def register_user(
         name=payload.name.strip(),
         email=payload.email.lower().strip(),
         hashed_password=hashed_pw,
-        role=payload.role,
+        role=UserRole.VIEWER,
         is_active=True,
     )
 

@@ -5,8 +5,7 @@ Pydantic schemas for registration requests, login payloads, and JWT token respon
 """
 
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
-from app.models.user import UserRole
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.schemas.user import UserResponse
 
 
@@ -28,16 +27,25 @@ class UserRegisterRequest(BaseModel):
     )
     password: str = Field(
         ...,
-        min_length=6,
+        min_length=8,
         max_length=100,
-        description="Plain-text password (will be hashed with Argon2id)",
+        description="Strong password (will be hashed with Argon2id)",
         examples=["SecurePass2026!"],
     )
-    role: UserRole = Field(
-        default=UserRole.VIEWER,
-        description="Assigned role: ADMIN, MANAGER, DRIVER, or VIEWER",
-        examples=[UserRole.MANAGER],
-    )
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, value: str) -> str:
+        if (
+            not any(char.islower() for char in value)
+            or not any(char.isupper() for char in value)
+            or not any(char.isdigit() for char in value)
+            or not any(not char.isalnum() for char in value)
+        ):
+            raise ValueError(
+                "Password must include uppercase, lowercase, number, and special character"
+            )
+        return value
 
 
 class UserLoginRequest(BaseModel):

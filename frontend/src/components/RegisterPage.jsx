@@ -8,35 +8,12 @@ export default function RegisterPage({ onNavigate }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('VIEWER');
   const [showPassword, setShowPassword] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Permitted self-registration roles (ADMIN is strictly excluded)
-  const ALLOWED_ROLES = [
-    {
-      id: 'VIEWER',
-      title: 'Viewer / Stakeholder',
-      desc: 'Read-only freight telemetry, shipment lookups, and inventory dashboards.',
-      badge: 'Read Only',
-    },
-    {
-      id: 'MANAGER',
-      title: 'Operations Dispatcher',
-      desc: 'Create shipments, allocate warehouses, schedule drivers, and rebalance stock.',
-      badge: 'Full Operations',
-    },
-    {
-      id: 'DRIVER',
-      title: 'Field Logistics Driver',
-      desc: 'Access assigned freight routes, update transit status, and submit delivery proof.',
-      badge: 'Field Mobile',
-    },
-  ];
 
   const validate = () => {
     const errors = {};
@@ -56,17 +33,19 @@ export default function RegisterPage({ onNavigate }) {
 
     if (!password) {
       errors.password = 'Password is required';
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters long';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters long';
+    } else if (
+      !/[a-z]/.test(password)
+      || !/[A-Z]/.test(password)
+      || !/\d/.test(password)
+      || !/[^A-Za-z0-9]/.test(password)
+    ) {
+      errors.password = 'Use uppercase, lowercase, number, and special character';
     }
 
     if (password !== confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
-    }
-
-    // Explicit security boundary: never allow self-registering as ADMIN
-    if (role === 'ADMIN' || !['VIEWER', 'MANAGER', 'DRIVER'].includes(role)) {
-      errors.role = 'ADMIN role cannot be self-registered. Please select a valid role.';
     }
 
     setValidationErrors(errors);
@@ -88,7 +67,6 @@ export default function RegisterPage({ onNavigate }) {
         name,
         email,
         password,
-        role,
       });
 
       setSuccessMessage('Account created successfully! Signing in...');
@@ -341,45 +319,8 @@ export default function RegisterPage({ onNavigate }) {
               </div>
             </div>
 
-            {/* Role Selection Group */}
-            <div className="auth-field">
-              <label className="auth-label">
-                Operational Role Assignment
-              </label>
-              <div className="role-selector-grid">
-                {ALLOWED_ROLES.map((r) => (
-                  <label
-                    key={r.id}
-                    className={`role-choice-card ${role === r.id ? 'selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="operational-role"
-                      value={r.id}
-                      checked={role === r.id}
-                      onChange={() => setRole(r.id)}
-                      className="role-radio-hidden"
-                    />
-                    <div className="role-choice-header">
-                      <span className="role-choice-title">{r.title}</span>
-                      <span className="role-choice-badge">{r.badge}</span>
-                    </div>
-                    <p className="role-choice-desc">{r.desc}</p>
-                  </label>
-                ))}
-              </div>
-
-              {/* Security Boundary Alert */}
-              <div className="auth-role-security-note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-                <span>
-                  <strong>Security Policy:</strong> ADMIN privileges cannot be self-assigned and must be provisioned internally by platform administrators.
-                </span>
-              </div>
+            <div className="auth-role-security-note">
+              <span>New accounts start with Viewer access. Platform administrators provision elevated roles.</span>
             </div>
 
             {/* Submit Button */}

@@ -20,7 +20,10 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- Backend automated tests currently pass: **326 passed**.
+- The authentication regression suite passes after registration hardening:
+  **18 passed**. The complete legacy suite currently exposes tests that used
+  public registration to create privileged users; those fixtures require
+  migration to administrator-provisioned test users.
 - Frontend tests report **50 passed** with the local backend running.
 - The frontend production build succeeds.
 
@@ -51,7 +54,8 @@ listed below.
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend test suite | 326 passed, existing dependency warnings | **COMPLETE** |
+| Backend authentication regression | 18 passed, existing dependency warnings | **COMPLETE** |
+| Complete backend regression | Legacy privileged-user fixtures require update | **PARTIALLY COMPLETE** |
 | Backend test collection | 326 tests collected | **COMPLETE** |
 | Frontend test suite | 50 passed with local backend running | **COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
@@ -96,7 +100,7 @@ Not completed in the browser:
 
 | Area | Finding | Status |
 |---|---|---|
-| Authentication and JWT login | Registration, login, current-user access, password hashing, and invalid-token tests exist | **COMPLETE** |
+| Authentication and JWT login | Public registration, login, current-user access, password hashing, invalid-token tests, viewer-only default role, and privileged-role mass-assignment protection | **COMPLETE** |
 | RBAC | Role dependencies and role-focused tests exist; live matrix verification is still recommended | **PARTIALLY COMPLETE** |
 | Warehouses | CRUD and analytics paths are implemented and covered by tests | **COMPLETE** |
 | Products | Catalog operations and validation are implemented and tested | **COMPLETE** |

@@ -23,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.deps import get_db
 from app.db.base import Base
 from app.main import app
+from .auth_test_utils import promote_test_user
 
 # ------------------------------------------------------------------------------
 # Test Database Setup (Isolated in-memory SQLite with StaticPool)
@@ -80,6 +81,7 @@ def get_auth_headers_for_role(client: TestClient, email: str, role: str) -> dict
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},

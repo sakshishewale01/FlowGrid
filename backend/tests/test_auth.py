@@ -156,7 +156,7 @@ def test_successful_registration(client):
     data = response.json()
     assert data["name"] == "Sarah Connor"
     assert data["email"] == "sarah.connor@flowgrid.io"
-    assert data["role"] == "MANAGER"
+    assert data["role"] == "VIEWER"
     assert data["is_active"] is True
     assert "id" in data
     assert "created_at" in data
@@ -164,6 +164,13 @@ def test_successful_registration(client):
     # Security requirement: hashed_password MUST NEVER be present in responses
     assert "hashed_password" not in data
     assert "password" not in data
+
+    db = TestingSessionLocal()
+    stored_user = db.query(User).filter(User.email == payload["email"]).one()
+    assert stored_user.role is UserRole.VIEWER
+    assert stored_user.hashed_password != payload["password"]
+    assert stored_user.hashed_password.startswith("$argon2id$")
+    db.close()
 
 
 def test_duplicate_email_registration_fails(client):
@@ -226,7 +233,7 @@ def test_successful_login(client):
     assert "access_token" in data
     assert data["token_type"] == "bearer"
     assert data["user"]["email"] == "elena@flowgrid.io"
-    assert data["user"]["role"] == "ADMIN"
+    assert data["user"]["role"] == "VIEWER"
     assert "hashed_password" not in data["user"]
 
 
@@ -353,7 +360,7 @@ def test_protected_me_with_valid_token(client):
     assert me_data["id"] == user_id
     assert me_data["email"] == "kyle@flowgrid.io"
     assert me_data["name"] == "Kyle Reese"
-    assert me_data["role"] == "DRIVER"
+    assert me_data["role"] == "VIEWER"
     assert "hashed_password" not in me_data
 
 
@@ -361,16 +368,18 @@ def test_protected_me_with_valid_token(client):
 # 5. Role-Based Access Control (require_roles) Tests
 # ------------------------------------------------------------------------------
 def test_rbac_admin_access_allowed(client):
-    # Register ADMIN
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "name": "Super Admin",
-            "email": "admin@flowgrid.io",
-            "password": "AdminPassword123!",
-            "role": "ADMIN",
-        },
+    db = TestingSessionLocal()
+    db.add(
+        User(
+            name="Super Admin",
+            email="admin@flowgrid.io",
+            hashed_password=get_password_hash("AdminPassword123!"),
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
     )
+    db.commit()
+    db.close()
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": "admin@flowgrid.io", "password": "AdminPassword123!"},
@@ -409,16 +418,18 @@ def test_rbac_viewer_access_denied_to_admin_route(client):
 
 
 def test_rbac_manager_access_to_manager_or_admin_route(client):
-    # Register MANAGER
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "name": "Warehouse Manager",
-            "email": "manager@flowgrid.io",
-            "password": "ManagerPassword123!",
-            "role": "MANAGER",
-        },
+    db = TestingSessionLocal()
+    db.add(
+        User(
+            name="Warehouse Manager",
+            email="manager@flowgrid.io",
+            hashed_password=get_password_hash("ManagerPassword123!"),
+            role=UserRole.MANAGER,
+            is_active=True,
+        )
     )
+    db.commit()
+    db.close()
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": "manager@flowgrid.io", "password": "ManagerPassword123!"},

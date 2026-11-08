@@ -32,6 +32,7 @@ from app.api.deps import get_db
 from app.db.base import Base
 from app.main import app
 from app.models.route import RouteStatus
+from .auth_test_utils import promote_test_user
 
 # ------------------------------------------------------------------------------
 # Test Database Setup (Isolated in-memory SQLite with StaticPool)
@@ -83,6 +84,7 @@ def get_auth_headers_for_role(client: TestClient, email: str, role: str) -> dict
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},
@@ -672,4 +674,3 @@ def test_route_search_and_active_filters(client, admin_headers):
     assert res_search2.status_code == status.HTTP_200_OK
     results2 = res_search2.json()
     assert any("Gulf" in r["name"] for r in results2)
-

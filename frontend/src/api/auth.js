@@ -27,15 +27,14 @@ export const authApi = {
   /**
    * Register a new user account.
    *
-   * @param {Object} payload - { name, email, password, role }
+   * @param {Object} payload - { name, email, password }
    * @returns {Promise<Object>} The created User profile
    */
-  async register({ name, email, password, role = 'VIEWER' }) {
+  async register({ name, email, password }) {
     return apiClient.post('/api/v1/auth/register', {
       name: name.trim(),
       email: email.trim(),
       password,
-      role,
     });
   },
 
