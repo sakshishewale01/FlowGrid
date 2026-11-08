@@ -10,9 +10,6 @@ This README is the current project status and repository guide. It describes the
 implementation currently present in the repository, not only the original plan.
 
 
-
-## Current implementation status
-
 ### Completed and integrated
 
 - **Authentication and authorization**
@@ -98,7 +95,8 @@ implementation currently present in the repository, not only the original plan.
   - PostgreSQL configuration through `DATABASE_URL`
   - SQLite-compatible local/test operation
   - Alembic migration history for core logistics, shipments, tracking, routes,
-    estimated delivery timestamps, and vehicle maintenance
+  estimated delivery timestamps, vehicle maintenance, inventory movements,
+  and the maintenance due-date index
   - Development seed data and demo accounts
 
 ### Prototype and operational limitations
@@ -302,6 +300,8 @@ Do not use these credentials in a shared or production environment.
 
 ## Testing and verification
 
+Final verification audit: **7 November 2026**.
+
 ### Backend
 
 ```powershell
@@ -325,12 +325,25 @@ npm run lint
 Latest repository verification:
 
 - Backend: **326 tests**, all passing with existing dependency deprecation warnings
-- Frontend: **49 tests**, **41 passed** and **8 skipped** because the backend
-  integration server was not running
+- Frontend: **50 tests**, all passing with the local backend running
 - Frontend production build: **successful**
 - Build output includes a non-blocking bundle-size warning for the main chunk
 - Frontend lint reports existing repository warnings; changed files have no new
   lint errors
+- Alembic head: `c3d4e5f6a7b8`; disposable SQLite upgrade and rollback checks
+  passed, including schema-drift validation
+- Disposable local backend smoke checks passed for health, all four role logins,
+  authenticated access, CSV reporting, and viewer RBAC rejection
+- Browser acceptance passed for admin login/dashboard, authenticated page
+  navigation, assistant response, operational report export, simulator
+  rendering/action, vehicles/maintenance, inventory, routes, rescue, and
+  tracking pages
+- Driver assigned-shipment interaction, browser Proof-of-Delivery submission,
+  live WebSocket interaction, responsive/accessibility checks, and SPA refresh
+  remain manual verification items
+- Docker CLI is installed, but the Docker Desktop Linux engine was unavailable
+  during final verification; PostgreSQL-container and production-image runtime
+  checks therefore remain unverified
 
 ---
 

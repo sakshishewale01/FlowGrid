@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import {
   warehousesApi,
@@ -71,6 +73,11 @@ test('Management APIs: Routes corridor listing and shipment allocation are avail
   assert.equal(typeof routesApi.getRouteShipments, 'function');
   assert.equal(typeof routesApi.assignShipmentToRoute, 'function');
   assert.equal(typeof routesApi.approveRecommendation, 'function');
+});
+
+test('App mounts the disruption simulator route', () => {
+  const appSource = readFileSync(resolve('src/App.jsx'), 'utf8');
+  assert.match(appSource, /route === ['"]simulator['"]\s*&&\s*<DisruptionSimulatorPage/);
 });
 
 test('State Machine: Permitted shipment status transitions adhere to lifecycle rules', () => {

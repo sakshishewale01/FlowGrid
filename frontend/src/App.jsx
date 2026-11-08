@@ -323,6 +323,7 @@ function AppContent() {
             {route === 'analytics' && <AnalyticsPage onNavigate={navigate} />}
             {route === 'settings' && <SettingsPage />}
             {route === 'rescue' && <RescueCenterPage onNavigate={navigate} />}
+            {route === 'simulator' && <DisruptionSimulatorPage onNavigate={navigate} />}
             {route === 'recommendations' && (
               <div className="recommendations-page-view" style={{ padding: '20px 24px' }}>
                 <OperationalRecommendationsPanel

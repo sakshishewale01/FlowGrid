@@ -1,6 +1,6 @@
 # FlowGrid Project Completion Audit
 
-**Audit date:** 6 November 2026
+**Audit date:** 7 November 2026
 **Scope:** Repository comparison against the FlowGrid master completion prompt  
 **Classification:** `COMPLETE`, `PARTIALLY COMPLETE`, `BROKEN`, `MISSING`, or
 `NEEDS MANUAL VERIFICATION`
@@ -21,8 +21,7 @@ FlowGrid has a substantial working foundation:
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
 - Backend automated tests currently pass: **326 passed**.
-- Frontend tests currently report **41 passed and 8 skipped** because the live
-  backend integration server was not running.
+- Frontend tests report **50 passed** with the local backend running.
 - The frontend production build succeeds.
 
 The five fixed Phase 3 workflow surfaces are implemented and covered by
@@ -35,13 +34,16 @@ verification:
 3. Run a current dependency vulnerability scan and production authorization
    matrix.
 
-Phase 3.6 regression verification was performed on 6 November 2026. The
-backend and frontend automated suites pass, Alembic upgrade/rollback was
-verified on an empty SQLite verification database, and the frontend login page
-was served successfully in a local browser. PostgreSQL, Docker runtime, and
-the complete multi-role browser journeys could not be verified because the
-local Docker Desktop Linux engine was unavailable and the frontend integration
-server was not running during the automated integration checks.
+Final v1.0 verification was performed on 7 November 2026. The 20 requested
+feature areas are represented in the repository and covered by automated
+tests where applicable. The backend and frontend automated suites pass, the
+Alembic graph has one head, and the frontend production build succeeds.
+The disposable SQLite migration check initially found and then verified a
+corrective migration for the model-declared maintenance due-date index.
+PostgreSQL and Docker runtime could not be verified because the local Docker
+Desktop Linux engine was unavailable. Browser acceptance was completed against
+the local SQLite development stack, with the remaining workflow limitations
+listed below.
 
 ---
 
@@ -51,20 +53,40 @@ server was not running during the automated integration checks.
 |---|---:|---|
 | Backend test suite | 326 passed, existing dependency warnings | **COMPLETE** |
 | Backend test collection | 326 tests collected | **COMPLETE** |
-| Frontend test suite | 41 passed, 8 skipped because backend was not running | **PARTIALLY COMPLETE** |
+| Frontend test suite | 50 passed with local backend running | **COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
-| Git worktree inspection | Phase 3.5 reporting changes are scoped; generated local database restored after tests | **COMPLETE** |
-| Alembic graph | One head (`a2b3c4d5e6f7`) | **COMPLETE** |
-| Empty-database Alembic upgrade | All revisions applied to `a2b3c4d5e6f7` on disposable SQLite verification DB | **COMPLETE** |
-| Alembic rollback/re-upgrade | Downgrade to `9a6f2d8e1c44` and re-upgrade to head succeeded on disposable SQLite DB | **COMPLETE** |
+| Git worktree inspection | Clean before and after verification; generated local database unchanged/restored | **COMPLETE** |
+| Alembic graph | One head (`c3d4e5f6a7b8`) | **COMPLETE** |
+| Empty-database Alembic upgrade | All revisions applied to `c3d4e5f6a7b8`; `alembic check` reported no drift on disposable SQLite DB | **COMPLETE** |
+| Alembic rollback/re-upgrade | Downgrade to `a2b3c4d5e6f7` and re-upgrade to `c3d4e5f6a7b8` succeeded on disposable SQLite DB | **COMPLETE** |
 | Clean PostgreSQL migration run | Docker Desktop Linux engine unavailable; no PostgreSQL container could be started | **NEEDS MANUAL VERIFICATION** |
-| Live backend/frontend workflow | Frontend login page loaded; critical journeys and external API integration were not completed | **NEEDS MANUAL VERIFICATION** |
+| Live backend smoke workflow | Disposable backend health, all four role logins, authenticated `/me`, CSV report access, and viewer RBAC rejection verified | **COMPLETE** |
+| Browser workflow | Admin login/dashboard, page navigation, assistant, report export, simulator render/action, vehicles/maintenance, inventory, routes, rescue, and tracking verified; responsive/accessibility/SPA refresh remain untested | **PARTIALLY COMPLETE** |
 | Production container startup | Entrypoint and packaging inspected; Docker runtime unavailable | **NEEDS MANUAL VERIFICATION** |
 | Frontend dependency audit | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities | **COMPLETE** |
 | Backend dependency audit | `pip-audit` unavailable in the environment | **NEEDS MANUAL VERIFICATION** |
 
 The backend warnings are deprecation warnings from the installed FastAPI/
 Starlette/httpx stack; they did not fail the suite.
+
+### Phase 5 browser acceptance
+
+Verified against the existing local SQLite development database without
+retaining database changes:
+
+- Admin login, dashboard loading, authenticated navigation, assistant grounded
+  response, analytics CSV export, simulator rendering and non-mutating action.
+- Manager login, inventory page, and recommendations page.
+- Vehicles/maintenance, routes, rescue, tracking, and shipment pages loaded.
+- All four role logins and the viewer recommendation restriction were also
+  verified through live API calls.
+
+Not completed in the browser:
+
+- Driver login and assigned-shipment interaction.
+- Proof-of-delivery submission and manager review.
+- Live WebSocket session, responsive/accessibility checks, and SPA refresh.
+- PostgreSQL-backed workflows and Docker runtime.
 
 ---
 
@@ -85,10 +107,10 @@ Starlette/httpx stack; they did not fail the suite.
 | Shipment history | Tracking records and status history are implemented and tested | **COMPLETE** |
 | Routes | Route management and shipment allocation are implemented and tested | **COMPLETE** |
 | Analytics | Domain analytics and dashboard metrics are implemented and tested | **COMPLETE** |
-| WebSocket tracking | Authentication, shipment authorization, connection limits, and tracking payloads exist | **PARTIALLY COMPLETE** |
+| WebSocket tracking | Authentication, shipment authorization, connection limits, and tracking payloads exist; browser WebSocket session remains untested | **PARTIALLY COMPLETE** |
 | Logistics assistant | Assistant service, endpoint, frontend modal, and tests exist | **PARTIALLY COMPLETE** |
 | Rescue Center | Frontend workflow and backend assistant/risk support exist | **PARTIALLY COMPLETE** |
-| Disruption simulator | Frontend simulation workflow exists; live operational acceptance workflow is not verified | **PARTIALLY COMPLETE** |
+| Disruption simulator | Frontend route mount, record loading, non-mutating simulation action, and success state verified in browser | **COMPLETE** |
 
 ### 3.2 Advanced features requested by the prompt
 
