@@ -23,6 +23,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
 from app.db.base import Base
+from .auth_test_utils import promote_test_user
 from app.main import app
 from app.models.shipment import Shipment
 from app.services.ml_service import ml_delay_service
@@ -79,6 +80,7 @@ def auth_headers(client):
             "role": "MANAGER",
         },
     )
+    promote_test_user(TestingSessionLocal, email, "MANAGER")
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},

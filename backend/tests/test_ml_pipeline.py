@@ -28,6 +28,7 @@ from app.db.base import Base
 from app.main import app
 from app.models.shipment import Shipment, ShipmentStatus
 from app.models.tracking import ShipmentStatusHistory
+from .auth_test_utils import promote_test_user
 from app.pipeline.schema import (
     FEATURE_REGISTRY,
     FeatureCategory,
@@ -89,6 +90,7 @@ def get_auth_headers_for_role(client: TestClient, email: str, role: str) -> dict
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},
@@ -144,6 +146,7 @@ def operational_setup(client, admin_headers):
         },
     )
     u_id = u_res.json()["id"]
+    promote_test_user(TestingSessionLocal, "frank_drv@flowgrid.io", "DRIVER")
 
     # Driver Profile
     drv_res = client.post(

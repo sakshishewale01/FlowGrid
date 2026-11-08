@@ -27,6 +27,7 @@ from app.db.base import Base
 from app.main import app
 from app.models.shipment import Shipment, ShipmentStatus
 from app.models.warehouse import Warehouse
+from .auth_test_utils import promote_test_user
 
 # ------------------------------------------------------------------------------
 # In-Memory SQLite Test Database Setup
@@ -80,6 +81,7 @@ def auth_headers(client):
             "role": "MANAGER",
         },
     )
+    promote_test_user(TestingSessionLocal, email, "MANAGER")
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},

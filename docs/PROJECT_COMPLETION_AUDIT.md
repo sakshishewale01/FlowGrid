@@ -20,10 +20,7 @@ FlowGrid has a substantial working foundation:
 - The React/Vite control-tower frontend contains the major operational pages,
   reusable components, API clients, contexts, hooks, maps, notifications, and
   workflows.
-- The authentication regression suite passes after registration hardening:
-  **18 passed**. The complete legacy suite currently exposes tests that used
-  public registration to create privileged users; those fixtures require
-  migration to administrator-provisioned test users.
+- Backend automated tests pass after registration hardening: **326 passed**.
 - Frontend tests report **50 passed** with the local backend running.
 - The frontend production build succeeds.
 
@@ -54,18 +51,17 @@ listed below.
 
 | Check | Result | Classification |
 |---|---:|---|
-| Backend authentication regression | 18 passed, existing dependency warnings | **COMPLETE** |
-| Complete backend regression | Legacy privileged-user fixtures require update | **PARTIALLY COMPLETE** |
+| Complete backend regression | 326 passed, existing dependency warnings | **COMPLETE** |
 | Backend test collection | 326 tests collected | **COMPLETE** |
 | Frontend test suite | 50 passed with local backend running | **COMPLETE** |
 | Frontend production build | Successful; one bundle-size warning | **COMPLETE** |
-| Git worktree inspection | Clean before and after verification; generated local database unchanged/restored | **COMPLETE** |
+| Git worktree inspection | Source changes reviewed; tracked local database restored after browser verification | **COMPLETE** |
 | Alembic graph | One head (`c3d4e5f6a7b8`) | **COMPLETE** |
 | Empty-database Alembic upgrade | All revisions applied to `c3d4e5f6a7b8`; `alembic check` reported no drift on disposable SQLite DB | **COMPLETE** |
 | Alembic rollback/re-upgrade | Downgrade to `a2b3c4d5e6f7` and re-upgrade to `c3d4e5f6a7b8` succeeded on disposable SQLite DB | **COMPLETE** |
 | Clean PostgreSQL migration run | Docker Desktop Linux engine unavailable; no PostgreSQL container could be started | **NEEDS MANUAL VERIFICATION** |
 | Live backend smoke workflow | Disposable backend health, all four role logins, authenticated `/me`, CSV report access, and viewer RBAC rejection verified | **COMPLETE** |
-| Browser workflow | Admin login/dashboard, page navigation, assistant, report export, simulator render/action, vehicles/maintenance, inventory, routes, rescue, and tracking verified; responsive/accessibility/SPA refresh remain untested | **PARTIALLY COMPLETE** |
+| Browser workflow | Registration, viewer role persistence, dashboard access, viewer privileged-action rejection, logout/re-login, and all four demo logins verified; broader workflow/manual checks remain untested | **PARTIALLY COMPLETE** |
 | Production container startup | Entrypoint and packaging inspected; Docker runtime unavailable | **NEEDS MANUAL VERIFICATION** |
 | Frontend dependency audit | `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities | **COMPLETE** |
 | Backend dependency audit | `pip-audit` unavailable in the environment | **NEEDS MANUAL VERIFICATION** |
@@ -78,12 +74,14 @@ Starlette/httpx stack; they did not fail the suite.
 Verified against the existing local SQLite development database without
 retaining database changes:
 
-- Admin login, dashboard loading, authenticated navigation, assistant grounded
-  response, analytics CSV export, simulator rendering and non-mutating action.
-- Manager login, inventory page, and recommendations page.
-- Vehicles/maintenance, routes, rescue, tracking, and shipment pages loaded.
-- All four role logins and the viewer recommendation restriction were also
-  verified through live API calls.
+- A unique disposable account was created through the browser registration
+  page, persisted with `VIEWER`, logged in, shown the dashboard, rejected from
+  privileged warehouse creation with HTTP 403, logged out, and logged back in.
+- The four documented demo accounts (admin, manager, driver, viewer) each
+  logged in successfully with their existing credentials.
+- Prior browser acceptance also verified admin dashboard/navigation, assistant,
+  report export, simulator, vehicles/maintenance, inventory, routes, rescue,
+  and tracking pages.
 
 Not completed in the browser:
 

@@ -326,10 +326,8 @@ npm run lint
 
 Latest repository verification:
 
-- Backend authentication regression: **18 tests passed** after public
-  registration hardening. The complete legacy suite requires role-dependent
-  test fixtures to create privileged users outside the public registration
-  endpoint.
+- Backend: **326 tests passed** after public registration hardening and
+  migration of privileged test fixtures to test-only provisioning.
 - Frontend: **50 tests**, all passing with the local backend running
 - Frontend production build: **successful**
 - Build output includes a non-blocking bundle-size warning for the main chunk
@@ -343,6 +341,9 @@ Latest repository verification:
   navigation, assistant response, operational report export, simulator
   rendering/action, vehicles/maintenance, inventory, routes, rescue, and
   tracking pages
+- Browser registration acceptance passed for a unique disposable account:
+  account creation, persisted `VIEWER` role, dashboard login, privileged API
+  rejection, logout, re-login, and all four documented demo logins
 - Driver assigned-shipment interaction, browser Proof-of-Delivery submission,
   live WebSocket interaction, responsive/accessibility checks, and SPA refresh
   remain manual verification items

@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
+from .auth_test_utils import promote_test_user
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -90,6 +91,7 @@ def get_auth_headers(client: TestClient, email: str, role: str) -> dict:
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},

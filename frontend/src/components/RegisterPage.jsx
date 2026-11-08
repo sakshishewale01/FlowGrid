@@ -236,7 +236,7 @@ export default function RegisterPage({ onNavigate }) {
               {/* Password Field */}
               <div className={`auth-field ${validationErrors.password ? 'has-error' : ''}`}>
                 <label htmlFor="reg-password" className="auth-label">
-                  Password (Min 6 chars)
+                  Password (Min 8 chars)
                 </label>
                 <div className="auth-input-wrapper">
                   <span className="auth-input-icon">

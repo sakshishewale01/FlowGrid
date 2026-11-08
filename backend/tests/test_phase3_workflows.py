@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.deps import get_db
 from app.db.base import Base
 from app.main import app
+from .auth_test_utils import promote_test_user
 
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -41,6 +42,7 @@ def auth_headers(client: TestClient, role: str = "MANAGER") -> dict:
     email = f"phase3-{role.lower()}@flowgrid.io"
     password = "SecurePassword2026!"
     client.post("/api/v1/auth/register", json={"name": role, "email": email, "password": password, "role": role})
+    promote_test_user(SessionLocal, email, role)
     response = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 

@@ -102,6 +102,7 @@ def driver_user_id(client):
             "role": "DRIVER",
         },
     )
+    promote_test_user(TestingSessionLocal, "driver_eligible@flowgrid.io", "DRIVER")
     return res.json()["id"]
 
 

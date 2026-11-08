@@ -13,6 +13,7 @@ from app.db.base import Base
 from app.main import app
 from .test_shipments import SAMPLE_SHIPMENT
 from .test_shipments import TestingSessionLocal, test_engine
+from .auth_test_utils import promote_test_user
 
 
 def override_get_db():
@@ -48,6 +49,7 @@ def _get_auth_headers(client, email, role):
             "role": role,
         },
     )
+    promote_test_user(TestingSessionLocal, email, role)
     login_response = client.post(
         "/api/v1/auth/login",
         json={"email": email, "password": password},
