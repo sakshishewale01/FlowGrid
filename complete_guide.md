@@ -1,6 +1,6 @@
-# 🚚 FlowGrid - Team Onboarding & Project Guide
+# 🚚 FlowGrid
 
-Welcome to **FlowGrid**! This guide is written for teammates to easily understand the project, see what has been built so far, and run it on their own laptop in 5 minutes without friction.
+Welcome to **FlowGrid**!
 
 ---
 
