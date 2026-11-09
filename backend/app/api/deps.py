@@ -34,7 +34,7 @@ def get_current_user(
     Raises:
         HTTPException (401 UNAUTHORIZED): If the token is missing, invalid, expired,
             or the user does not exist.
-        HTTPException (400 BAD REQUEST): If the user exists but is deactivated.
+        HTTPException (403 FORBIDDEN): If the user exists but is deactivated.
     """
     if not auth or not auth.credentials:
         raise HTTPException(
@@ -86,7 +86,7 @@ def get_current_user(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
         )
 

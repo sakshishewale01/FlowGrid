@@ -79,11 +79,11 @@ export default function RegisterPage({ onNavigate }) {
             onNavigate('dashboard');
           }, 800);
         }
-      } catch {
-        // If auto-login fails, redirect to login page
-        setTimeout(() => {
-          if (onNavigate) onNavigate('login');
-        }, 1500);
+      } catch (loginError) {
+        setSuccessMessage('Account created successfully. Please sign in manually.');
+        setErrorMessage(
+          loginError.message || 'Automatic sign-in failed. Please sign in with your new account.'
+        );
       }
     } catch (err) {
       setErrorMessage(err.message || 'Registration failed. Please check your details.');

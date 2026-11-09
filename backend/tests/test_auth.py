@@ -206,6 +206,21 @@ def test_registration_validation_error(client):
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
+def test_registration_role_override_is_ignored(client):
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "name": "Public Viewer",
+            "email": "public-viewer@flowgrid.io",
+            "password": "SecurePassword123!",
+            "role": "ADMIN",
+        },
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["role"] == "VIEWER"
+
+
 # ------------------------------------------------------------------------------
 # 3. User Login Tests
 # ------------------------------------------------------------------------------
@@ -326,6 +341,39 @@ def test_protected_me_with_invalid_token(client):
     response = client.get("/api/v1/auth/me", headers=headers)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "invalid or expired" in response.json()["detail"]
+
+
+def test_protected_me_with_malformed_authorization_scheme(client):
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Basic not-a-bearer-token"},
+    )
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_protected_me_rejects_inactive_user(client):
+    db = TestingSessionLocal()
+    user = User(
+        name="Inactive User",
+        email="inactive-auth@flowgrid.io",
+        hashed_password=get_password_hash("InactivePassword123!"),
+        role=UserRole.VIEWER,
+        is_active=False,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    token = create_access_token(subject=user.id, role=user.role.value)
+    db.close()
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert "deactivated" in response.json()["detail"]
 
 
 def test_protected_me_with_valid_token(client):
