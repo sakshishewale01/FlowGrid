@@ -25,6 +25,17 @@ from app.schemas.user import UserResponse
 router = APIRouter()
 
 
+def _is_duplicate_email_error(exc: IntegrityError) -> bool:
+    """Identify the users-email uniqueness violation without exposing DB details."""
+    original = getattr(exc, "orig", None)
+    constraint_name = getattr(getattr(original, "diag", None), "constraint_name", None)
+    if constraint_name in {"users_email_key", "ix_users_email"}:
+        return True
+
+    message = str(original).lower()
+    return "users.email" in message or "unique constraint failed: users.email" in message
+
+
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -69,12 +80,14 @@ def register_user(
     db.add(new_user)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists",
-        )
+        if _is_duplicate_email_error(exc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email address already exists",
+            ) from exc
+        raise
     db.refresh(new_user)
 
     return new_user

@@ -22,7 +22,7 @@ from app.core.logging import get_logger
 logger = get_logger("db")
 
 # ------------------------------------------------------------------------------
-# 1. SQLAlchemy Synchronous Engine with Intelligent Development Fallback
+# 1. SQLAlchemy Synchronous Engine
 # ------------------------------------------------------------------------------
 def _build_engine():
     db_url = settings.database_url
@@ -33,34 +33,12 @@ def _build_engine():
             connect_args={"check_same_thread": False},
         )
 
-    # For PostgreSQL: test connection with fast failover (3s timeout)
-    try:
-        pg_engine = create_engine(
-            db_url,
-            pool_pre_ping=True,
-            echo=False,
-            connect_args={"connect_timeout": 3},
-        )
-        with pg_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        logger.info("Connected successfully to PostgreSQL database.")
-        return pg_engine
-    except Exception as exc:
-        if settings.is_production:
-            logger.error("PostgreSQL connection failed in production: %s", exc)
-            raise RuntimeError(
-                "PostgreSQL must be reachable when APP_ENV is production"
-            ) from exc
-        logger.warning(
-            "PostgreSQL database connection failed (%s). "
-            "Automatically falling back to local SQLite database (flowgrid_dev.db) for uninterrupted operation.",
-            exc,
-        )
-        return create_engine(
-            "sqlite:///flowgrid_dev.db",
-            echo=False,
-            connect_args={"check_same_thread": False},
-        )
+    return create_engine(
+        db_url,
+        pool_pre_ping=True,
+        echo=False,
+        connect_args={"connect_timeout": 3},
+    )
 
 engine = _build_engine()
 
@@ -79,14 +57,14 @@ def ensure_db_tables_and_seed():
     Ensures database tables exist and essential demo accounts are seeded.
     Called automatically on application startup.
     """
-    try:
-        from app.db.base import Base
-        import app.models  # noqa: F401
-        Base.metadata.create_all(bind=engine)
-        from scripts.seed_demo_data import seed_demo_data
-        seed_demo_data()
-    except Exception as exc:
-        logger.warning("Database schema check / seeding notice: %s", exc)
+    from app.db.base import Base
+    import app.models  # noqa: F401
+
+    with engine.connect() as connection:
+        connection.execute(text("SELECT current_database()"))
+    Base.metadata.create_all(bind=engine)
+    from scripts.seed_demo_data import seed_demo_data
+    seed_demo_data()
 
 
 # ------------------------------------------------------------------------------
@@ -121,5 +99,8 @@ def check_db_connection() -> Tuple[bool, str]:
             connection.execute(text("SELECT 1"))
         return True, "Database connection successful"
     except Exception as exc:
-        logger.error(f"Database health check failed: {exc}", exc_info=True)
+        logger.error(
+            "Database health check failed: %s",
+            type(exc).__name__,
+        )
         return False, f"Connection refused or database unreachable: {type(exc).__name__}"

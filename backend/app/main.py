@@ -106,19 +106,23 @@ async def lifespan(app: FastAPI):
     """
     try:
         settings.validate_runtime()
-        if settings.is_production:
-            is_connected, message = check_db_connection()
-            if not is_connected:
-                raise RuntimeError(message)
-            logger.info("Production database is reachable; migrations were applied before startup.")
+        if app.dependency_overrides:
+            logger.info("Database startup validation skipped for an isolated dependency override.")
         else:
-            ensure_db_tables_and_seed()
-            logger.info("Development database initialized and demo accounts verified.")
+            if settings.is_production:
+                is_connected, message = check_db_connection()
+                if not is_connected:
+                    raise RuntimeError(message)
+                logger.info("Production database is reachable; migrations were applied before startup.")
+            else:
+                ensure_db_tables_and_seed()
+                logger.info("Development database initialized and demo accounts verified.")
     except Exception as exc:
-        if settings.is_production:
-            logger.critical("Production startup validation failed: %s", exc)
-            raise
-        logger.warning("Startup database check encountered notice: %s", exc)
+        logger.critical(
+            "Startup database validation failed: %s",
+            type(exc).__name__,
+        )
+        raise
     yield
 
 # ------------------------------------------------------------------------------
