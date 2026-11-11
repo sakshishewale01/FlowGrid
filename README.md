@@ -1,253 +1,65 @@
-# FlowGrid
+# FlowGrid 🚚
+### Intelligent Logistics and Supply Chain Management Platform
 
-## Intelligent Logistics and Supply Chain Management Platform
+## About the Project
 
-FlowGrid is a full-stack logistics control tower for managing warehouses, products,
-inventory, drivers, vehicles, shipments, routes, tracking, analytics, and
-decision-support workflows.
+FlowGrid is a web-based logistics management platform that helps manage shipments, warehouses, inventory, drivers, vehicles, and routes in one place.
 
-This README is the current project status and repository guide. It describes the
-implementation currently present in the repository, not only the original plan.
+It uses machine learning to predict shipment delay risks and provides analytics to support better logistics decisions.
 
+## Features
 
-### Completed and integrated
+- **User Authentication:** Secure login and registration with role-based access (Admin, Manager, Driver, Viewer).
+- **Dashboard:** Centralized view of logistics operations and key statistics.
+- **Shipment Management:** Create, manage, assign, and track shipments.
+- **Warehouse Management:** Manage warehouses and monitor capacity.
+- **Inventory Management:** Track stock, low inventory, and reorder recommendations.
+- **Fleet Management:** Manage drivers, vehicles, and maintenance records.
+- **Route Recommendations:** Suggest suitable routes using stored route information.
+- **AI Delay Prediction:** Predict shipment delay probability and risk levels using a Random Forest model.
+- **Analytics & Reports:** View operational insights and export CSV reports.
+- **Logistics Assistant:** Provides logistics-related insights using application data.
+- **What-If Simulation:** Explore logistics disruption scenarios.
 
-- **Authentication and authorization**
-  - User registration and login
-  - Public registration always provisions the `VIEWER` role; elevated roles
-    require administrator provisioning
-  - JWT access tokens
-  - Argon2 password hashing
-  - Role-based access control for `ADMIN`, `MANAGER`, `DRIVER`, and `VIEWER`
-  - Protected HTTP and WebSocket resources
-- **Warehouse management**
-  - Warehouse CRUD operations
-  - Capacity and active-status tracking
-  - Warehouse utilization analytics
-- **Product and inventory management**
-  - Product catalog and SKU management
-  - Warehouse-level inventory records
-  - Stock adjustments, reorder levels, and low-stock detection
-  - Auditable inventory movement history, trend summaries, and transparent demand estimates
-  - Manager/admin inventory reorder recommendation review with insufficient-history fallback
-- **Fleet management**
-  - Driver records, license data, phone data, and availability
-  - Vehicle records, types, capacity, and operational status
-  - Driver and vehicle assignment workflows
-  - Vehicle maintenance schedules, service dates, next-service due dates, statuses, and history
-  - Upcoming/overdue maintenance identification with manager/admin updates
-- **Shipment operations**
-  - Shipment creation, listing, detail, update, and assignment
-  - Lifecycle state-machine validation
-  - Capacity checks before dispatch
-  - Estimated delivery timestamps
-  - Proof-of-delivery confirmations with recipient, timestamp, notes, and metadata
-  - Driver/manager authorization, duplicate protection, and delivery history review
-  - Terminal-state safeguards
-- **Tracking and routes**
-  - Route and freight-corridor management
-  - Shipment-to-route allocation
-  - Tracking events and immutable status history
-  - Authenticated real-time shipment tracking over WebSocket
-  - Explainable route recommendations ranked from stored active/planned corridors
-  - Shipment-aware warehouse/vehicle capacity constraints and manager/admin approval before assignment
-- **Analytics**
-  - Overview KPIs
-  - Shipment, warehouse, inventory, route, driver, and vehicle analytics
-  - Operational risk and low-stock indicators
-  - Authenticated shipment, inventory, and fleet CSV report exports with spreadsheet-safe cells
-- **Phase 3 decision-support workflows**
-  - Inventory planning baseline endpoint with explicit insufficient-history disclosure
-  - Frontend route recommendation approval, inventory trends/recommendations, and fleet maintenance workflows
-- **AI-ready data pipeline**
-  - Dataset generation from operational records
-  - Feature extraction and engineering
-  - Data-quality checks and pipeline schemas
-  - Dataset export scripts and generated ML datasets
-- **Delay-risk machine learning prototype**
-  - Scikit-learn Random Forest pipeline
-  - India logistics benchmark dataset
-  - Model artifact loading and cached inference
-  - Delay probability and `LOW`/`MEDIUM`/`HIGH` risk bands
-  - API integration at `POST /api/v1/ml/predict-delay`
-- **Grounded logistics assistant**
-  - Authenticated assistant API
-  - Operational responses based on application data
-  - Frontend assistant modal and insight panels
-- **Frontend control tower**
-  - React and Vite single-page application
-  - Login, registration, protected routes, role gates, and settings
-  - Dashboard KPI cards and live shipment flow map
-  - Warehouses, inventory, drivers, vehicles, shipments, routes, and analytics pages
-  - Rescue Center and disruption simulator workflows
-  - Notifications, toasts, loading states, empty states, error boundary, and modals
-  - Leaflet-based route and shipment maps
-  - Shipment CSV export with sensitive-field sanitization
-  - Dark/light operational UI styling
-- **Operational hardening**
-  - Explicit production CORS validation (no wildcard or local origins)
-  - Security response headers
-  - Request timing headers and structured logging
-  - Sanitized database and unexpected-error responses/log messages
-  - Argon2 password hashing and validated JWT signature, expiry, subject, and role claims
-  - Failed-authentication rate limiting with `429` responses and `Retry-After`
-  - WebSocket authentication, RBAC, and connection limits
-- **Database and migrations**
-  - SQLAlchemy 2.x models and repositories
-  - PostgreSQL configuration through `DATABASE_URL`
-  - SQLite-compatible local/test operation
-  - Alembic migration history for core logistics, shipments, tracking, routes,
-  estimated delivery timestamps, vehicle maintenance, inventory movements,
-  and the maintenance due-date index
-  - Development seed data and demo accounts
+## Technology Stack
 
-### Prototype and operational limitations
+| Component | Technologies |
+|---|---|
+| Frontend | React, Vite, JavaScript, Tailwind CSS |
+| Backend | Python, FastAPI |
+| Database | PostgreSQL |
+| ORM & Migrations | SQLAlchemy, Alembic |
+| Machine Learning | Scikit-learn, Random Forest |
+| Authentication | JWT, Argon2 |
+| Maps | Leaflet |
+| Deployment | Vercel, Render, Neon |
+| Version Control | Git, GitHub |
 
-- The delay model is a **prototype decision-support model**, not a production
-  carrier-performance predictor. Its labels come from a synthetic benchmark
-  dataset and must not be interpreted as real-world Indian freight history.
-- The frontend integration tests that call `http://127.0.0.1:8000` are skipped
-  when the backend server is not running.
-- Inventory planning uses recorded quantity movements only. With fewer than
-  three movements containing outbound demand, it falls back to the configured
-  reorder level; with sufficient history it uses a simple 90-day average-rate
-  estimate and does not claim model accuracy.
-- Route recommendations rank stored estimates only; they do not use traffic,
-  GPS, telemetry, or road-network optimization.
-- Production deployment, observability, and cloud infrastructure are not
-  included as a completed deployment target in this repository.
-
----
-
-## Architecture
+## System Architecture
 
 ```text
-React + Vite control tower
-        │
-        ├── REST/JSON ────────┐
-        └── WebSocket tracking│
-                              ▼
-                       FastAPI application
-                              │
-             ┌────────────────┼────────────────┐
-             ▼                ▼                ▼
-        API routers       Services         ML/pipeline
-             │                │                │
-             └──────────► Repositories ◄───────┘
-                              │
-                       SQLAlchemy ORM
-                              │
-                   PostgreSQL or SQLite
+React + Vite Frontend
+        |
+        | REST API / WebSocket
+        v
+FastAPI Backend
+        |
+        |-------------------|
+        v                   v
+PostgreSQL Database    ML Prediction Pipeline
 ```
 
-The backend follows a layered design:
-
-1. **Endpoints** define HTTP/WebSocket contracts and authorization dependencies.
-2. **Schemas** validate request and response data with Pydantic.
-3. **Services** implement business rules and workflow invariants.
-4. **Repositories** encapsulate database queries.
-5. **Models** map domain entities to database tables.
-
-The shipment lifecycle is governed by explicit transition rules. Status changes
-must go through the shipment service so that history, assignment, capacity, and
-terminal-state rules remain consistent.
-
----
-
-## API surface
-
-The API is versioned under `/api/v1`:
-
-| Prefix | Responsibility |
-|---|---|
-| `/auth` | Registration, login, current-user access, authentication |
-| `/warehouses` | Warehouse CRUD and capacity information |
-| `/products` | Product catalog |
-| `/inventory` | Stock listing, adjustment, and reorder information |
-| `/drivers` | Driver records and availability |
-| `/vehicles` | Fleet records and vehicle status |
-| `/shipments` | Shipment lifecycle, assignments, and manifests |
-| `/routes` | Corridors, routes, and shipment allocations |
-| `/analytics` | Operational KPIs and domain analytics |
-| `/pipeline` | AI-ready dataset and pipeline operations |
-| `/ml` | Delay-risk prediction |
-| `/assistant` | Grounded logistics assistant |
-
-Additional application endpoints:
-
-- `GET /` — service information
-- `GET /health` — application health
-- `GET /health/db` — database connectivity health
-- `WS /ws/tracking/{shipment_id}` — authenticated live shipment tracking
-- `POST /api/v1/shipments/{shipment_id}/delivery-confirmation` — authorized delivery confirmation
-- `GET /api/v1/shipments/delivery-confirmations/history` — manager/admin delivery history
-- `GET /api/v1/shipments/delivery-confirmations/missing` — delivered shipments without confirmation
-- `GET /api/v1/vehicles/{vehicle_id}/maintenance` — maintenance schedule/history
-- `POST /api/v1/vehicles/{vehicle_id}/maintenance` — manager/admin maintenance scheduling
-- `PATCH /api/v1/vehicles/maintenance/{record_id}` — manager/admin maintenance updates
-- `GET /api/v1/vehicles/maintenance/due?days=30` — authenticated upcoming/overdue maintenance
-- `POST /api/v1/routes/recommendations` — explainable stored-route recommendations
-- `POST /api/v1/routes/recommendations/{route_id}/approve` — manager/admin approval applying a reviewed route and optional vehicle assignment
-- `GET /api/v1/inventory/{inventory_id}/forecast?horizon_days=30` — transparent trend-based demand estimate or threshold fallback
-- `GET /api/v1/inventory/{inventory_id}/movements` — recorded inventory movement history
-- `GET /api/v1/inventory/recommendations?horizon_days=30` — manager/admin reorder recommendation review
-- `GET /api/v1/analytics/reports.csv?report_type=shipments|delivery|inventory|fleet&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` — authenticated operational CSV report with inclusive date filtering and spreadsheet formula-injection protection. Shipment and delivery reports use persisted shipment/status timestamps; inventory uses inventory update timestamps; fleet assignment totals use persisted shipment assignments.
-- `/docs` — Swagger UI
-- `/redoc` — ReDoc
-
----
-
-## Technology stack
+## Local Setup
 
 ### Backend
-
-- Python 3.11+
-- FastAPI and Uvicorn
-- Pydantic v2 and pydantic-settings
-- SQLAlchemy 2.x
-- PostgreSQL with psycopg 3
-- Alembic
-- PyJWT and Argon2 via pwdlib
-- pytest and HTTPX
-- scikit-learn and joblib
-
-### Frontend
-
-- React `^19.2.8`
-- React DOM `^19.2.8`
-- Vite `^8.3.0`
-- Leaflet `^1.9.4`
-- Native Node test runner
-- Oxlint
-
----
-
-## Local setup
-
-### Prerequisites
-
-- Python 3.11 or newer
-- Node.js and npm
-- Git
-- PostgreSQL is optional for local development; configure it when required
-
-### Backend on Windows PowerShell
 
 ```powershell
 cd backend
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 Copy-Item .env.example .env
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-If PowerShell blocks activation for the current session:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\venv\Scripts\Activate.ps1
 ```
 
 ### Frontend
@@ -260,267 +72,35 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>.
+Open the application at:
 
-The frontend uses `http://127.0.0.1:8000` by default. To override it, create
-`frontend/.env` from `frontend/.env.example` and set the documented API URL
-variable.
+http://localhost:5173
 
-### Database and seed data
+## Deployment
 
-Copy `backend/.env.example` to `backend/.env` and set a secure `SECRET_KEY`.
-Configure `DATABASE_URL` for PostgreSQL when available. The application startup
-initializes the local development schema and verifies development seed data.
-Production uses the versioned Alembic migration workflow and does not seed demo
-records automatically. Migrations can be managed explicitly with:
+FlowGrid is deployed using:
 
-```powershell
-cd backend
-alembic upgrade head
-python scripts\seed_demo_data.py
-```
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Database:** Neon PostgreSQL
 
-The production Docker image runs `alembic upgrade head` before starting
-Uvicorn. It includes the application, migrations, seed script, and ML inference
-artifact required by the backend. Production requires `APP_ENV=production`,
-`DEBUG=False`, a strong explicitly configured `SECRET_KEY`, and PostgreSQL.
+## Limitations
 
-### Development demo accounts
+- AI delay prediction is a prototype trained on benchmark data.
+- Route recommendations use stored route estimates and do not include live traffic or GPS optimization.
+- Inventory forecasting uses historical stock movements and simple demand estimates.
+- The system is intended as an academic project and decision-support prototype.
 
-These accounts are for local development only:
+## Future Scope
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@flowgrid.io` | `AdminPass123!` |
-| Manager | `manager@flowgrid.io` | `ManagerPass123!` |
-| Driver | `driver@flowgrid.io` | `DriverPass123!` |
-| Viewer | `viewer@flowgrid.io` | `ViewerPass123!` |
+- GPS-based real-time shipment tracking
+- Live traffic-based route optimization
+- Improved machine learning models using real logistics data
+- Integration with external logistics and transportation systems
+- Advanced predictive analytics
 
-Do not use these credentials in a shared or production environment.
+## Project Status
 
----
-
-## Testing and verification
-
-Final verification audit: **7 November 2026**.
-
-### Backend
-
-```powershell
-cd backend
-pytest -v
-```
-
-The current suite contains **326 collected tests** covering authentication,
-RBAC, validation, models, CRUD workflows, analytics, shipment transitions,
-tracking, WebSockets, pipeline behavior, and ML inference.
-
-### Frontend
-
-```powershell
-cd frontend
-npm test
-npm run build
-npm run lint
-```
-
-Latest repository verification:
-
-- Backend: **326 tests passed** after public registration hardening and
-  migration of privileged test fixtures to test-only provisioning.
-- Frontend: **50 tests**, all passing with the local backend running
-- Frontend production build: **successful**
-- Build output includes a non-blocking bundle-size warning for the main chunk
-- Frontend lint reports existing repository warnings; changed files have no new
-  lint errors
-- Alembic head: `c3d4e5f6a7b8`; disposable SQLite upgrade and rollback checks
-  passed, including schema-drift validation
-- Disposable local backend smoke checks passed for health, all four role logins,
-  authenticated access, CSV reporting, and viewer RBAC rejection
-- Browser acceptance passed for admin login/dashboard, authenticated page
-  navigation, assistant response, operational report export, simulator
-  rendering/action, vehicles/maintenance, inventory, routes, rescue, and
-  tracking pages
-- Browser registration acceptance passed for a unique disposable account:
-  account creation, persisted `VIEWER` role, dashboard login, privileged API
-  rejection, logout, re-login, and all four documented demo logins
-- Driver assigned-shipment interaction, browser Proof-of-Delivery submission,
-  live WebSocket interaction, responsive/accessibility checks, and SPA refresh
-  remain manual verification items
-- Docker CLI is installed, but the Docker Desktop Linux engine was unavailable
-  during final verification; PostgreSQL-container and production-image runtime
-  checks therefore remain unverified
-
----
-
-## Complete repository structure
-
-Generated environments and caches such as `backend/venv/`, `backend/.venv/`,
-`.venv/`, `frontend/node_modules/`, `frontend/dist/`, `__pycache__/`, and
-`.pytest_cache/` are intentionally omitted from the source tree below.
-
-```text
-FlowGrid/
-├── README.md                         # Current project status and this guide
-├── complete_guide.md                 # Team onboarding and expanded walkthrough
-├── .gitignore
-│
-├── backend/
-│   ├── Dockerfile                    # Backend container image
-│   ├── alembic.ini                  # Alembic configuration
-│   ├── requirements.txt             # Python dependencies
-│   ├── .env.example                 # Backend environment template
-│   │
-│   ├── app/
-│   │   ├── main.py                  # FastAPI app, middleware, health, startup
-│   │   ├── api/
-│   │   │   ├── deps.py              # Database, current-user, and role dependencies
-│   │   │   └── v1/
-│   │   │       ├── api.py           # Versioned router aggregator
-│   │   │       └── endpoints/
-│   │   │           ├── auth.py
-│   │   │           ├── warehouses.py
-│   │   │           ├── products.py
-│   │   │           ├── inventory.py
-│   │   │           ├── drivers.py
-│   │   │           ├── vehicles.py
-│   │   │           ├── shipments.py
-│   │   │           ├── routes.py
-│   │   │           ├── analytics.py
-│   │   │           ├── pipeline.py
-│   │   │           ├── ml.py
-│   │   │           ├── assistant.py
-│   │   │           └── ws_tracking.py
-│   │   ├── core/
-│   │   │   ├── config.py             # Settings and environment loading
-│   │   │   ├── logging.py            # Structured/sanitized logging
-│   │   │   └── security.py           # Password hashing and JWT operations
-│   │   ├── db/
-│   │   │   ├── base.py               # SQLAlchemy declarative base
-│   │   │   └── session.py            # Engine, sessions, DB checks, startup seed
-│   │   ├── models/                   # SQLAlchemy domain entities
-│   │   │   ├── user.py
-│   │   │   ├── warehouse.py
-│   │   │   ├── product.py
-│   │   │   ├── inventory.py
-│   │   │   ├── driver.py
-│   │   │   ├── vehicle.py
-│   │   │   ├── shipment.py
-│   │   │   ├── delivery_confirmation.py
-│   │   │   ├── tracking.py
-│   │   │   └── route.py
-│   │   ├── schemas/                  # Pydantic request/response contracts
-│   │   ├── repositories/             # Database query and persistence layer
-│   │   ├── services/                 # Business workflows and domain rules
-│   │   └── pipeline/                 # AI-ready data generation and quality checks
-│   │
-│   ├── alembic/
-│   │   ├── env.py
-│   │   ├── script.py.mako
-│   │   └── versions/                 # Versioned database migrations
-│   │       ├── 7b9c1a0070c1_create_core_logistics_models.py
-│   │       ├── 027ff684fd07_create_shipments_table.py
-│   │       ├── 63c4732baa7d_create_shipment_tracking_and_history_.py
-│   │       ├── 9090bc4b1426_create_routes_and_route_shipments_tables.py
-│   │       ├── a1c2d3e4f5a6_add_estimated_delivery_at_to_shipments.py
-│   │       └── b7d8e9f0a1b2_create_delivery_confirmations.py
-│   │
-│   ├── ml/
-│   │   ├── train_india_delay_model.py # Train/evaluate the prototype model
-│   │   └── models/
-│   │       └── india_delay_pipeline.joblib
-│   ├── ml_data/
-│   │   └── india/                    # India benchmark source data
-│   ├── ml_exports/
-│   │   ├── data_quality_report.json
-│   │   ├── full_dataset.csv
-│   │   ├── train_dataset.csv
-│   │   └── test_dataset.csv
-│   ├── scripts/
-│   │   ├── export_ml_dataset.py
-│   │   └── seed_demo_data.py
-│   └── tests/                        # Backend pytest suite
-│       ├── test_auth.py
-│       ├── test_health.py
-│       ├── test_hardening.py
-│       ├── test_models.py
-│       ├── test_data_validation.py
-│       ├── test_analytics.py
-│       ├── test_assistant.py
-│       ├── test_delay_risk.py
-│       ├── test_drivers.py
-│       ├── test_inventory.py
-│       ├── test_ml_pipeline.py
-│       ├── test_ml_prediction.py
-│       ├── test_products.py
-│       ├── test_routes.py
-│       ├── test_shipments.py
-│       ├── test_delivery_confirmation.py
-│       ├── test_tracking.py
-│       ├── test_vehicles.py
-│       ├── test_warehouses.py
-│       └── test_websocket_tracking.py
-│
-├── frontend/
-│   ├── package.json                  # Scripts and JavaScript dependencies
-│   ├── index.html
-│   ├── vite.config.js
-│   ├── .env.example
-│   ├── public/
-│   │   ├── favicon.svg
-│   │   ├── hero_truck.jpg
-│   │   └── icons.svg
-│   ├── src/
-│   │   ├── main.jsx                  # React entrypoint
-│   │   ├── App.jsx                   # App shell and page routing
-│   │   ├── App.css
-│   │   ├── index.css
-│   │   ├── api/                      # REST client modules by domain
-│   │   ├── assets/                   # Bundled images and template assets
-│   │   ├── components/               # Reusable UI, modals, maps, panels
-│   │   ├── context/                  # Auth, notifications, and toast state
-│   │   ├── data/                     # Frontend data constants
-│   │   ├── hooks/                    # Dashboard and WebSocket hooks
-│   │   ├── pages/                    # Management and control-tower screens
-│   │   ├── services/                 # Export and frontend service helpers
-│   │   └── utils/                    # Geographic and shared utilities
-│   ├── tests/                        # Native Node frontend tests
-│   │   ├── apiServices.test.js
-│   │   ├── authClient.test.js
-│   │   ├── geoAndExport.test.js
-│   │   ├── integration.test.js
-│   │   ├── liveDelayRisk.test.js
-│   │   ├── managementViews.test.js
-│   │   ├── ml_api.test.js
-│   │   ├── realtimeAndNotifications.test.js
-│   │   └── workflowAndPolish.test.js
-│   └── README.md                     # Vite template notes
-│
-└── docs/
-    ├── ARCHITECTURE.md               # Detailed system architecture
-    ├── DESIGN.md                     # Product and UI design direction
-    ├── MEMORY.md                     # Project memory and decisions
-    ├── PRD.md                        # Product requirements
-    ├── RULES.md                      # Engineering and domain rules
-    ├── TASKS.md                      # Work tracking and planned tasks
-    ├── setup.md                      # Local setup instructions
-    ├── database-setup.md              # Database setup notes
-    ├── requirements.md               # Requirements reference
-    ├── ai_ready_data_pipeline.md
-    ├── ai_existing_data_and_india_dataset_audit.md
-    ├── ai_readiness_and_dataset_audit.md
-    ├── analytics_and_business_metrics.md
-    └── ...
-```
-
----
-
-## Related documentation
-
-- [Architecture specification](docs/ARCHITECTURE.md)
-- [Local setup guide](docs/setup.md)
-- [Database setup](docs/database-setup.md)
-- [Team onboarding guide](complete_guide.md)
-- [Product requirements](docs/PRD.md)
+FlowGrid is a full-stack academic major project integrating logistics management, analytics, and machine learning-based decision support.
 
 ---
